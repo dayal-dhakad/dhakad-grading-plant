@@ -1,0 +1,43 @@
+{
+  "name": "@dhakad/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "npm run build && wait-on http://localhost:5173 && cross-env ELECTRON_RENDERER_URL=http://localhost:5173 electron .",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo No desktop tests required in Phase 1",
+    "package": "npm run build && npm run build -w @dhakad/frontend && electron-builder --win"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "cross-env": "^10.1.0",
+    "electron": "44.2.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "in.dhakad.gradingplant",
+    "productName": "Dhakad Grading Plant",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "description": "Windows desktop shell for Dhakad Grading Plant",
+  "author": "Dhakad Grading Plant"
+}

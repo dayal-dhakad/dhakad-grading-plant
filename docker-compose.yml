@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dhakad_grading_plant}
+      POSTGRES_USER: ${POSTGRES_USER:-dhakad}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dhakad_local_only}
+    ports: ['${POSTGRES_PORT:-5433}:5432']
+    volumes: ['postgres_data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  postgres_data:
+    name: dhakad_grading_plant_postgres_data

@@ -1,0 +1,11 @@
+ALTER TYPE "LedgerEntryType" ADD VALUE 'SMALL_BALANCE_WAIVER';
+ALTER TYPE "LedgerEntryType" ADD VALUE 'WAIVER_REVERSAL';
+
+ALTER TABLE "grading_entries"
+ADD COLUMN "waived_amount" DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE "customer_payments"
+ADD COLUMN "waived_amount" DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE "payment_allocations"
+ADD COLUMN "waived_amount" DECIMAL(12,2) NOT NULL DEFAULT 0;

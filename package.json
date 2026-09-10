@@ -1,0 +1,45 @@
+{
+  "name": "dhakad-grading-plant",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build -w @dhakad/shared",
+    "dev": "concurrently -k \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:frontend": "npm run dev -w @dhakad/frontend",
+    "dev:backend": "npm run dev -w @dhakad/backend",
+    "dev:desktop": "concurrently -k \"npm:dev:backend\" \"npm:dev:frontend\" \"npm run dev -w @dhakad/desktop\"",
+    "build": "npm run build -w @dhakad/shared && npm run build -w @dhakad/backend && npm run build -w @dhakad/frontend && npm run build -w @dhakad/desktop",
+    "typecheck": "npm run build -w @dhakad/shared && npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "npm run build -w @dhakad/shared && npm test --workspaces --if-present",
+    "prisma:generate": "npm run prisma:generate -w @dhakad/backend",
+    "prisma:validate": "npm run prisma:validate -w @dhakad/backend",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate:deploy": "npm exec --workspace @dhakad/backend -- prisma migrate deploy",
+    "db:seed": "npm exec --workspace @dhakad/backend -- prisma db seed",
+    "db:studio": "npm exec --workspace @dhakad/backend -- prisma studio",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0"
+  },
+  "packageManager": "npm@10.9.3"
+}

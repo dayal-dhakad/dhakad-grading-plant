@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+@theme {
+  --color-brand-50: #fff9e8;
+  --color-brand-100: #fdf0bc;
+  --color-brand-200: #f8dc75;
+  --color-brand-500: #e9a817;
+  --color-brand-700: #08704f;
+  --color-brand-800: #005a40;
+  --color-brand-900: #003f30;
+  --color-accent-red: #dc4b2f;
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    @apply m-0 min-w-80 bg-stone-100 text-stone-900 antialiased;
+  }
+  button,
+  input,
+  select {
+    @apply min-h-11;
+  }
+  button {
+    @apply cursor-pointer disabled:cursor-not-allowed;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-700;
+  }
+}
+@layer components {
+  .field-label {
+    @apply text-sm font-semibold text-stone-700;
+  }
+  .field {
+    @apply block min-h-12 w-full rounded-xl border border-stone-300 bg-white px-4 shadow-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-100;
+  }
+  .compact-field {
+    @apply block min-h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm shadow-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-100;
+  }
+  .primary-button {
+    @apply min-h-12 rounded-xl bg-brand-700 px-5 font-bold text-white shadow-sm transition hover:bg-brand-800 disabled:opacity-60;
+  }
+  .secondary-button {
+    @apply rounded-xl border border-stone-300 bg-white px-4 py-2 font-semibold text-stone-700 shadow-sm transition hover:bg-stone-50 disabled:opacity-60;
+  }
+  .nav-item {
+    @apply flex min-h-10 w-full items-center justify-between rounded-lg px-3 text-left text-sm font-semibold text-stone-600 transition enabled:hover:bg-stone-100 disabled:cursor-default;
+  }
+  .nav-item-active {
+    @apply text-white shadow-sm;
+    background-image: linear-gradient(135deg, #003f30, #08704f);
+  }
+  .nav-item-active:hover {
+    @apply text-white;
+    background-image: linear-gradient(135deg, #003f30, #08704f);
+  }
+  .card {
+    @apply rounded-2xl border border-stone-200 bg-white p-6 shadow-sm;
+  }
+  .card-label {
+    @apply text-xs font-bold uppercase tracking-widest text-stone-500;
+  }
+  .table-panel {
+    @apply overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm;
+  }
+  .data-table {
+    @apply w-full text-left text-sm;
+  }
+  .data-table thead {
+    @apply border-b border-stone-200 bg-stone-50;
+  }
+  .data-table th {
+    @apply whitespace-nowrap text-[0.6875rem] font-bold uppercase tracking-wider text-stone-500;
+    padding: 0.625rem 0.75rem;
+  }
+  .data-table td {
+    @apply align-middle text-stone-700;
+    padding: 0.625rem 0.75rem;
+  }
+  .data-table tbody {
+    @apply divide-y divide-stone-100;
+  }
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-brand-50/40;
+  }
+  .data-table .table-primary {
+    @apply font-bold text-stone-900;
+  }
+  .data-table .table-id {
+    @apply whitespace-nowrap font-bold text-brand-800;
+  }
+  .data-table .table-money {
+    @apply whitespace-nowrap font-bold tabular-nums text-stone-900;
+  }
+  .data-table .table-due {
+    @apply whitespace-nowrap font-bold tabular-nums text-red-700;
+  }
+  .status-badge {
+    @apply inline-flex rounded-full px-2 py-0.5 text-xs font-bold;
+  }
+  .status-badge-positive {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+  .status-badge-muted {
+    @apply bg-stone-200 text-stone-600;
+  }
+  .status-badge-warning {
+    @apply bg-red-100 text-red-800;
+  }
+  .compact-table-button {
+    min-height: 2rem !important;
+    @apply rounded-lg border px-2.5 py-1 text-xs font-semibold;
+  }
+  .customer-filter-button {
+    min-height: 2rem !important;
+    @apply rounded-md px-3 py-1 text-xs font-bold transition;
+  }
+}
+
+@layer utilities {
+  .login-brand-panel {
+    background-color: var(--color-brand-900);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgb(248 220 117 / 0.34), transparent 30%),
+      radial-gradient(circle at 88% 82%, rgb(220 75 47 / 0.22), transparent 34%),
+      linear-gradient(145deg, #003f30 8%, #08704f 58%, #0b563f 100%);
+  }
+  .login-form-panel {
+    background-image:
+      radial-gradient(circle at 100% 0%, rgb(248 220 117 / 0.38), transparent 34%),
+      linear-gradient(155deg, #fffdf7 20%, #fff9e8 72%, #fdf0bc 120%);
+  }
+}

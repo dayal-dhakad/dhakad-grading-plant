@@ -1,0 +1,11 @@
+node_modules/
+**/dist/
+**/release/
+coverage/
+.vite/
+package-lock.json
+apps/backend/prisma/migrations/
+*.tsbuildinfo
+*.png
+*.jpg
+*.svg
