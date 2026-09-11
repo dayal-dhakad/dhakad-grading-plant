@@ -41,7 +41,7 @@ describe('seed management contracts', () => {
     for (const unit of ['GRAM', 'KILOGRAM', 'QUINTAL'] as const)
       expect(
         AddSeedStockSchema.safeParse({
-          movementType: 'STOCK_ADDED',
+          action: 'ADD',
           quantity: '1',
           unit,
           reason: 'Owner added stock',
@@ -52,7 +52,7 @@ describe('seed management contracts', () => {
   it('rejects unknown stock fields', () => {
     expect(
       AddSeedStockSchema.safeParse({
-        movementType: 'STOCK_ADDED',
+        action: 'ADD',
         quantity: '1',
         unit: 'KILOGRAM',
         reason: 'Owner added stock',

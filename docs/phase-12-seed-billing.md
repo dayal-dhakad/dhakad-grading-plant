@@ -13,8 +13,10 @@ Status: implementation and verification complete on 2026-09-10.
   available stock, and calculates all monetary totals authoritatively with decimal arithmetic.
 - Bill creation atomically writes the bill, line snapshots, negative stock movements, charge,
   payment, and optional small-balance waiver ledger entries.
-- Staff can record partial payment and explicitly waive only a positive remainder up to ₹10.
+- Staff can record partial payment and explicitly waive any positive remainder.
 - Staff see the selected customer's existing total due before confirming a sale.
+- The seed receipt preview shows quantity, rate per kilogram, discount, gross amount, and final
+  amount for every item.
 - Staff see only their own seed bills; administrators see all seed bills.
 - Active bills can be cancelled with a mandatory reason. Cancellation restores stock and reverses
   the bill's remaining ledger effect without deleting financial or stock history.

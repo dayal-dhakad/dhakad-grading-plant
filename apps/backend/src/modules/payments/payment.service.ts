@@ -48,19 +48,8 @@ export const createPayment = async (input: CreatePaymentInput, userId: string) =
           { path: 'amount', message: `Enter an amount up to ${balance.toFixed(2)}` },
         ]);
       const remainder = balance.minus(amount);
-      const waivedAmount = input.waiveSmallBalance ? remainder : new Prisma.Decimal(0);
-      if (input.waiveSmallBalance && (remainder.lte(0) || remainder.gt(new Prisma.Decimal(10))))
-        throw new AppError(
-          400,
-          'SMALL_BALANCE_WAIVER_NOT_ALLOWED',
-          'Only a remaining customer balance up to ₹10.00 can be waived',
-          [
-            {
-              path: 'waiveSmallBalance',
-              message: 'The remaining balance must be between ₹0.01 and ₹10.00',
-            },
-          ],
-        );
+      const waivedAmount =
+        input.waiveSmallBalance && remainder.gt(0) ? remainder : new Prisma.Decimal(0);
       const payment = await transaction.customerPayment.create({
         data: {
           customerId: input.customerId,

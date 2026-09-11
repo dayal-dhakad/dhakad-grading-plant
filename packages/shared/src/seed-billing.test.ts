@@ -40,4 +40,16 @@ describe('seed billing contract', () => {
 
   it('rejects unknown fields', () =>
     expect(CreateSeedBillSchema.safeParse({ ...valid, tax: '18' }).success).toBe(false));
+
+  it('rejects duplicate products and zero selling rates before submission', () => {
+    expect(
+      CreateSeedBillSchema.safeParse({ ...valid, items: [...valid.items, valid.items[0]] }).success,
+    ).toBe(false);
+    expect(
+      CreateSeedBillSchema.safeParse({
+        ...valid,
+        items: [{ ...valid.items[0], ratePerKg: '0' }],
+      }).success,
+    ).toBe(false);
+  });
 });

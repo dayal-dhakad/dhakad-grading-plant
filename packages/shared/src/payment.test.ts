@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreatePaymentSchema } from './payment.js';
+import { CreatePaymentSchema, CustomerLedgerResponseSchema } from './payment.js';
 describe('payment contracts', () => {
   it('accepts a positive two-decimal payment', () => {
     expect(
@@ -35,6 +35,28 @@ describe('payment contracts', () => {
         paymentMethod: 'CASH',
         waiveSmallBalance: true,
       }).waiveSmallBalance,
+    ).toBe(true);
+  });
+  it('accepts seed-sale entries in the shared customer ledger', () => {
+    expect(
+      CustomerLedgerResponseSchema.safeParse({
+        balance: '125.00',
+        entries: [
+          {
+            id: '4ea4f8dc-9f72-4fb3-99a4-fdfc40ced5ea',
+            entryType: 'SEED_SALE_CHARGE',
+            amount: '125.00',
+            description: 'Seed sale SEED-000001',
+            gradingEntryId: null,
+            paymentId: null,
+            createdBy: {
+              id: '4ea4f8dc-9f72-4fb3-99a4-fdfc40ced5eb',
+              name: 'Staff User',
+            },
+            createdAt: '2026-09-11T00:00:00.000Z',
+          },
+        ],
+      }).success,
     ).toBe(true);
   });
 });

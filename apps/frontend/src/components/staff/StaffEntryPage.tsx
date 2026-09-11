@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   CreateCustomerSchema,
   CreateGradingEntrySchema,
@@ -11,6 +11,7 @@ import {
   useGetCustomersQuery,
 } from '@/services/api/customer-api';
 import { MobileNumberInput } from '@/components/form/MobileNumberInput';
+import { SuccessToast } from '@/components/feedback/SuccessToast';
 import {
   useCreateGradingEntryMutation,
   useGetGradingReferencesQuery,
@@ -52,7 +53,10 @@ export const StaffEntryPage = () => {
     { ...(search ? { search } : {}), status: 'all', page: 1, pageSize: 8 },
     { skip: search.length < 3 || Boolean(customer) },
   );
-  const { data: totalDue } = useGetCustomerGradingDueQuery(customer?.id ?? '', { skip: !customer });
+  const { data: totalDue, isFetching: isDueLoading } = useGetCustomerGradingDueQuery(
+    customer?.id ?? '',
+    { skip: !customer },
+  );
   const { data: references } = useGetGradingReferencesQuery();
   const [cropId, setCropId] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -66,6 +70,7 @@ export const StaffEntryPage = () => {
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState('');
   const [created, setCreated] = useState('');
+  const closeSuccessToast = useCallback(() => setCreated(''), []);
   const [pendingEntry, setPendingEntry] = useState<CreateGradingEntryInput>();
   const [create, state] = useCreateGradingEntryMutation();
   const [createCustomer, customerState] = useCreateCustomerMutation();
@@ -75,8 +80,14 @@ export const StaffEntryPage = () => {
     [billableQuantity, rate],
   );
   const displayedPaid = paymentEdited ? paidAmount : total;
-  const remainingAmount = Math.max(0, Number(total) - Number(displayedPaid || 0));
-  const canWaiveSmallBalance = remainingAmount > 0 && remainingAmount <= 10;
+  const maximumPayment = Number(totalDue ?? 0) + Number(total);
+  const paymentTooHigh =
+    Boolean(customer) && !isDueLoading && Number(displayedPaid || 0) > maximumPayment;
+  const entryDue = Math.max(0, Number(total) - Number(displayedPaid || 0));
+  const remainingAmount = Math.max(
+    0,
+    Number(totalDue ?? 0) + Number(total) - Number(displayedPaid || 0),
+  );
   const chooseCustomer = (item: Customer) => {
     if (!item.isActive) return;
     setCustomer(item);
@@ -112,14 +123,29 @@ export const StaffEntryPage = () => {
     setRate('');
     setPaidAmount('');
     setPaymentEdited(false);
+    setPaymentMethod('CASH');
     setWaiveSmallBalance(false);
+    setServiceDate(today());
     setNotes('');
+    setAddingCustomer(false);
+    setNewCustomerName('');
+    setNewCustomerVillage('');
+    setCustomerMessage('');
+    setMessage('');
     setCreated('');
     setPendingEntry(undefined);
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setMessage('');
+    if (!customer) {
+      setMessage('Select an active customer before reviewing the receipt.');
+      return;
+    }
+    if (!cropId) {
+      setMessage('Select a crop before reviewing the receipt.');
+      return;
+    }
     const quantityPattern = /^\d+(\.\d{1,2})?$/;
     if (
       (quantity && !quantityPattern.test(quantity)) ||
@@ -127,6 +153,12 @@ export const StaffEntryPage = () => {
       billableQuantity <= 0
     ) {
       setMessage('Enter a valid quantity. Kilograms must be less than 100.');
+      return;
+    }
+    if (paymentTooHigh) {
+      setMessage(
+        `Amount paid cannot be greater than ₹${displayDecimal(maximumPayment)} (existing dues + current charge).`,
+      );
       return;
     }
     const parsed = CreateGradingEntrySchema.safeParse({
@@ -152,22 +184,15 @@ export const StaffEntryPage = () => {
     setMessage('');
     try {
       const result = await create(pendingEntry).unwrap();
+      reset();
       setCreated(`GR-${String(result.entryNumber).padStart(6, '0')} saved successfully`);
-      setPendingEntry(undefined);
-      setCropId('');
-      setQuantity('');
-      setKilograms('');
-      setRate('');
-      setPaidAmount('');
-      setPaymentEdited(false);
-      setWaiveSmallBalance(false);
-      setNotes('');
     } catch {
       setMessage('Unable to save entry. Check the details and try again.');
     }
   };
   return (
     <div className="w-full">
+      <SuccessToast message={created} onClose={closeSuccessToast} />
       <h1 className="text-2xl font-bold tracking-tight">New entry</h1>
       <div className="mt-4 flex w-fit rounded-lg bg-stone-200 p-1">
         <button
@@ -253,13 +278,13 @@ export const StaffEntryPage = () => {
             <div className="p-4">
               <p className="card-label">Due on this entry</p>
               <p className="mt-1 text-xl font-black text-red-700">
-                ₹{displayDecimal(waiveSmallBalance ? 0 : remainingAmount)}
+                ₹{displayDecimal(waiveSmallBalance ? 0 : entryDue)}
               </p>
             </div>
             <div className="border-stone-200 p-4 lg:border-l">
               <p className="card-label">Total dues after entry</p>
               <p className="mt-1 text-xl font-black text-red-700">
-                ₹{displayDecimal(Number(totalDue ?? 0) + (waiveSmallBalance ? 0 : remainingAmount))}
+                ₹{displayDecimal(waiveSmallBalance ? 0 : remainingAmount)}
               </p>
             </div>
           </div>
@@ -295,7 +320,7 @@ export const StaffEntryPage = () => {
           <div className="relative">
             <MobileNumberInput
               id="customer-mobile"
-              label="Customer mobile number"
+              label="Customer mobile number *"
               value={mobile}
               onChange={(value) => {
                 setMobile(value);
@@ -304,7 +329,7 @@ export const StaffEntryPage = () => {
                 setCustomerMessage('');
               }}
               onBlur={() => undefined}
-              error={undefined}
+              error={!customer && message ? message : undefined}
               compact
             />
             {!customer && !addingCustomer && search.length >= 3 && (
@@ -446,170 +471,172 @@ export const StaffEntryPage = () => {
               </div>
             </div>
           )}
-          {customer && (
-            <>
-              <label className="field-label order-1">
-                Crop
-                <select
-                  className="compact-field mt-1"
-                  value={cropId}
-                  onChange={(e) => {
-                    setCropId(e.target.value);
-                    setRate(
-                      displayDecimal(
-                        references?.crops.find((item) => item.id === e.target.value)?.rate ?? '',
-                      ),
-                    );
-                    setPaymentEdited(false);
-                  }}
-                >
-                  <option value="">Select crop</option>
-                  {references?.crops.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} · ₹{item.rate}/{item.unit.symbol}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="order-2">
-                <span className="field-label">Quantity</span>
-                <div className="mt-1 flex gap-2">
-                  <label className="relative min-w-0 flex-1">
-                    <span className="sr-only">Quintals</span>
-                    <input
-                      className="compact-field pr-14"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={quantity}
-                      onChange={(e) => {
-                        setQuantity(e.target.value);
-                        setPaymentEdited(false);
-                      }}
-                    />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-xs font-bold text-stone-500">
-                      Quintal
-                    </span>
-                  </label>
-                  <label className="relative w-32">
-                    <span className="sr-only">Kilograms</span>
-                    <input
-                      className="compact-field pr-10"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={kilograms}
-                      onChange={(e) => {
-                        setKilograms(e.target.value);
-                        setPaymentEdited(false);
-                      }}
-                    />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-xs font-bold text-stone-500">
-                      kg
-                    </span>
-                  </label>
-                </div>
-                <p className="mt-1 text-[11px] text-stone-500">
-                  Total: {billableQuantity.toFixed(2)} quintal
-                </p>
-              </div>
-              <label className="field-label order-3">
-                Rate (₹/quintal)
-                <input
-                  className="compact-field mt-1"
-                  inputMode="decimal"
-                  value={rate}
-                  onChange={(e) => {
-                    setRate(e.target.value);
-                    setPaymentEdited(false);
-                  }}
-                />
-              </label>
-              <div className="order-6 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
-                <p className="card-label">Calculated amount</p>
-                <p className="mt-0.5 text-2xl font-extrabold text-brand-900">₹{total}</p>
-              </div>
-              <label className="field-label order-7">
-                Amount paid
-                <span className="mt-1 flex min-h-14 items-center rounded-xl border-2 border-brand-700 bg-brand-50 px-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-100">
-                  <span className="text-xl font-black text-brand-900">₹</span>
+          <>
+            <label className="field-label order-1">
+              Crop *
+              <select
+                className="compact-field mt-1"
+                value={cropId}
+                onChange={(e) => {
+                  setCropId(e.target.value);
+                  setRate(
+                    displayDecimal(
+                      references?.crops.find((item) => item.id === e.target.value)?.rate ?? '',
+                    ),
+                  );
+                  setPaymentEdited(false);
+                }}
+              >
+                <option value="">Select crop</option>
+                {references?.crops.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} · ₹{item.rate}/{item.unit.symbol}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="order-2">
+              <span className="field-label">Quantity *</span>
+              <div className="mt-1 flex gap-2">
+                <label className="relative min-w-0 flex-1">
+                  <span className="sr-only">Quintals</span>
                   <input
-                    className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none"
+                    className="compact-field pr-14"
                     inputMode="decimal"
-                    value={displayedPaid}
+                    placeholder="0"
+                    value={quantity}
                     onChange={(e) => {
-                      setPaidAmount(e.target.value);
-                      setPaymentEdited(true);
-                      setWaiveSmallBalance(false);
+                      setQuantity(e.target.value);
+                      setPaymentEdited(false);
                     }}
                   />
-                </span>
-              </label>
-              {canWaiveSmallBalance && (
-                <label className="order-8 flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    checked={waiveSmallBalance}
-                    onChange={(event) => setWaiveSmallBalance(event.target.checked)}
-                  />
-                  Waive the remaining ₹{displayDecimal(remainingAmount)} and mark this entry settled
+                  <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-xs font-bold text-stone-500">
+                    Quintal
+                  </span>
                 </label>
-              )}
-              <fieldset className="order-8">
-                <legend className="field-label">Payment mode</legend>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  {(['CASH', 'ONLINE'] as const).map((item) => (
-                    <label
-                      className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold ${paymentMethod === item ? 'border-brand-700 bg-brand-50 text-brand-800' : ''}`}
-                      key={item}
-                    >
-                      <input
-                        className="sr-only"
-                        type="radio"
-                        checked={paymentMethod === item}
-                        onChange={() => setPaymentMethod(item)}
-                      />
-                      {item === 'CASH' ? 'Cash' : 'Online'}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              <label className="field-label order-4">
-                Service date
+                <label className="relative w-32">
+                  <span className="sr-only">Kilograms</span>
+                  <input
+                    className="compact-field pr-10"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={kilograms}
+                    onChange={(e) => {
+                      setKilograms(e.target.value);
+                      setPaymentEdited(false);
+                    }}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-xs font-bold text-stone-500">
+                    kg
+                  </span>
+                </label>
+              </div>
+              <p className="mt-1 text-[11px] text-stone-500">
+                Total: {billableQuantity.toFixed(2)} quintal
+              </p>
+            </div>
+            <label className="field-label order-3">
+              Rate (₹/quintal) *
+              <input
+                className="compact-field mt-1"
+                inputMode="decimal"
+                value={rate}
+                onChange={(e) => {
+                  setRate(e.target.value);
+                  setPaymentEdited(false);
+                }}
+              />
+            </label>
+            <div className="order-6 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
+              <p className="card-label">Calculated amount</p>
+              <p className="mt-0.5 text-2xl font-extrabold text-brand-900">₹{total}</p>
+            </div>
+            <label className="field-label order-7">
+              Amount paid *
+              <span className="mt-1 flex min-h-14 items-center rounded-xl border-2 border-brand-700 bg-brand-50 px-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-100">
+                <span className="text-xl font-black text-brand-900">₹</span>
                 <input
-                  className="compact-field mt-1"
-                  type="date"
-                  value={serviceDate}
-                  onChange={(e) => setServiceDate(e.target.value)}
+                  className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none"
+                  inputMode="decimal"
+                  value={displayedPaid}
+                  onChange={(e) => {
+                    setPaidAmount(e.target.value);
+                    setPaymentEdited(true);
+                    setWaiveSmallBalance(false);
+                  }}
                 />
-              </label>
-              <label className="field-label order-8">
-                Notes (optional)
-                <textarea
-                  className="compact-field mt-1 h-10 min-h-10 resize-none py-2"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </label>
-              {message && (
-                <p className="order-9 text-sm font-semibold text-red-700 sm:col-span-2">
-                  {message}
-                </p>
+              </span>
+              {customer && (
+                <span className="mt-1 block text-xs text-stone-500">
+                  {isDueLoading
+                    ? 'Checking existing dues…'
+                    : `Maximum: ₹${displayDecimal(maximumPayment)} (existing dues + current charge)`}
+                </span>
               )}
-              {created && (
-                <div className="order-9 rounded-xl bg-green-50 p-4 font-semibold text-green-800 sm:col-span-2">
-                  {created}
-                  <button type="button" className="ml-3 underline" onClick={reset}>
-                    Start another customer
-                  </button>
-                </div>
-              )}
-              <button
-                className="primary-button order-10 sm:col-span-2 sm:justify-self-start"
-                disabled={state.isLoading}
+            </label>
+            <label
+              className="order-8 flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2"
+            >
+              <input
+                type="checkbox"
+                checked={waiveSmallBalance}
+                onChange={(event) => setWaiveSmallBalance(event.target.checked)}
+              />
+              {remainingAmount > 0
+                ? `Waive the remaining ₹${displayDecimal(remainingAmount)} and mark this entry settled`
+                : 'Waive any remaining balance'}
+            </label>
+            <fieldset className="order-8">
+              <legend className="field-label">Payment mode *</legend>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {(['CASH', 'ONLINE'] as const).map((item) => (
+                  <label
+                    className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold ${paymentMethod === item ? 'border-brand-700 bg-brand-50 text-brand-800' : ''}`}
+                    key={item}
+                  >
+                    <input
+                      className="sr-only"
+                      type="radio"
+                      checked={paymentMethod === item}
+                      onChange={() => setPaymentMethod(item)}
+                    />
+                    {item === 'CASH' ? 'Cash' : 'Online'}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="field-label order-4">
+              Service date *
+              <input
+                className="compact-field mt-1"
+                type="date"
+                value={serviceDate}
+                onChange={(e) => setServiceDate(e.target.value)}
+              />
+            </label>
+            <label className="field-label order-8">
+              Notes (optional)
+              <textarea
+                className="compact-field mt-1 h-10 min-h-10 resize-none py-2"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </label>
+            {message && (
+              <p
+                className="order-9 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 sm:col-span-2"
+                role="alert"
               >
-                Review receipt
-              </button>
-            </>
-          )}
+                {message}
+              </p>
+            )}
+            <button
+              className="primary-button order-10 sm:col-span-2 sm:justify-self-start"
+              disabled={state.isLoading}
+            >
+              Review receipt
+            </button>
+          </>
         </form>
       )}
     </div>

@@ -2,28 +2,55 @@ import { z } from 'zod';
 import { SeedDiscountTypeSchema, SeedQuantityUnitSchema } from './seed-management.js';
 import { PaymentMethodSchema } from './grading.js';
 
-const amount = z.string().regex(/^\d+(\.\d{1,2})?$/);
-export const CreateSeedBillSchema = z.strictObject({
-  customerId: z.uuid(),
-  items: z
-    .array(
-      z.strictObject({
-        productId: z.uuid(),
-        quantity: z.string().regex(/^\d+(\.\d{1,5})?$/),
-        unit: SeedQuantityUnitSchema,
-        ratePerKg: amount,
-        discountType: SeedDiscountTypeSchema,
-        discountValue: amount,
-      }),
-    )
-    .min(1)
-    .max(50),
-  paidAmount: amount,
-  paymentMethod: PaymentMethodSchema,
-  waiveSmallBalance: z.boolean().default(false),
-  serviceDate: z.iso.date(),
-  notes: z.string().trim().max(500).optional(),
-});
+const amount = z.string().regex(/^\d+(\.\d{1,2})?$/, 'Enter a valid amount');
+export const CreateSeedBillSchema = z
+  .strictObject({
+    customerId: z.uuid(),
+    items: z
+      .array(
+        z.strictObject({
+          productId: z.uuid(),
+          quantity: z
+            .string()
+            .regex(/^(?!0+(?:\.0{1,5})?$)\d+(\.\d{1,5})?$/, 'Quantity must be greater than zero'),
+          unit: SeedQuantityUnitSchema,
+          ratePerKg: amount,
+          discountType: SeedDiscountTypeSchema,
+          discountValue: amount,
+        }),
+      )
+      .min(1)
+      .max(50),
+    paidAmount: amount,
+    paymentMethod: PaymentMethodSchema,
+    waiveSmallBalance: z.boolean().default(false),
+    serviceDate: z.iso.date(),
+    notes: z.string().trim().max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (new Set(value.items.map((item) => item.productId)).size !== value.items.length)
+      context.addIssue({ code: 'custom', path: ['items'], message: 'Add each seed only once' });
+    for (const [index, item] of value.items.entries()) {
+      if (Number(item.ratePerKg) <= 0)
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index, 'ratePerKg'],
+          message: 'Rate must be greater than zero',
+        });
+      if (item.discountType === 'NONE' && Number(item.discountValue) !== 0)
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index, 'discountValue'],
+          message: 'No discount must use zero',
+        });
+      if (item.discountType === 'PERCENTAGE' && Number(item.discountValue) > 100)
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index, 'discountValue'],
+          message: 'Percentage cannot exceed 100',
+        });
+    }
+  });
 export const CancelSeedBillSchema = z.strictObject({ reason: z.string().trim().min(1).max(300) });
 const user = z.strictObject({ id: z.uuid(), name: z.string() });
 const customer = z.strictObject({ id: z.uuid(), name: z.string(), mobile: z.string() });

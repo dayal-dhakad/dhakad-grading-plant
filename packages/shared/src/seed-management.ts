@@ -12,6 +12,9 @@ export const SeedStockMovementTypeSchema = z.enum([
   'STOCK_ADDED',
   'ADJUSTMENT_INCREASE',
   'ADJUSTMENT_DECREASE',
+  'EXTERNAL_SALE',
+  'SALE',
+  'SALE_REVERSAL',
 ]);
 
 export const SeedCategorySchema = z.strictObject({
@@ -91,7 +94,7 @@ export const UpdateSeedProductSchema = z
   .refine((value) => Object.keys(value).length > 0, 'Provide at least one field');
 
 export const AddSeedStockSchema = z.strictObject({
-  movementType: SeedStockMovementTypeSchema,
+  action: z.enum(['ADD', 'CORRECT', 'EXTERNAL_SALE']),
   quantity,
   unit: SeedQuantityUnitSchema,
   reason: requiredText('Reason', 300),

@@ -1,0 +1,1 @@
+ALTER TYPE "SeedStockMovementType" ADD VALUE 'EXTERNAL_SALE';

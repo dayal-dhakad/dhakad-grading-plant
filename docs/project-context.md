@@ -32,11 +32,24 @@ The primary users work in a local/village business environment. Optimize for lar
   type is fixed to `Seeds`. Product setup asks only for name, optional code, selling rate, default
   discount, and optional opening stock; low-stock alerts are not used. Administrators add and edit
   seed products in a modal.
+- Stock adjustment presents three business actions: add stock, correct stock to the actual current
+  balance, and minus stock for quantities sold or used outside the system. Corrections remain
+  append-only adjustments rather than rewriting stock history.
 - Staff grading entry is an inline page form, not a modal.
+- Grading and seed transaction fields remain visible before customer selection, allowing staff to
+  enter the mobile number at any point. Only the selected-customer detail and dues card is hidden
+  until a customer is selected; final validation still requires an active customer.
 - Customer selection in the staff grading form starts with a debounced mobile-number search. Selecting a suggestion displays the customer's mobile number, name, village, and current total dues.
 - The selected customer's compact summary appears beside the mobile lookup. Staff may enter quintals and remaining kilograms together (for example, 40 quintals and 20 kg), and may override the crop's default per-quintal rate for an individual entry. The combined quantity is normalized to quintals before calculation.
 - Grading service date and record creation date are separate. Staff may select historical service dates when backfilling the client's previous two years of entries; the immutable creation timestamp is generated automatically when the record is entered into the system.
 - Grading entry creation uses a receipt-review confirmation step. Form validation opens a complete preview without writing an entry; staff may return to edit, and the entry is persisted only after explicit final confirmation.
+- Staff entry validation messages are shown when Review receipt is clicked, not while fields are
+  being typed. Informational totals and payment limits may remain visible. Required grading and
+  seed-entry labels are marked with an asterisk.
+- Seed bill review validates duplicate products, quantity precision, positive rates, discounts,
+  available stock, payment ceiling, and waiver eligibility before opening the receipt preview.
+- After a grading or seed entry is saved successfully, the complete entry form resets to defaults
+  and the saved record number appears in a temporary success toast instead of an inline banner.
 - Staff may edit their own entries only through a reason-required revision flow. Original values and every revision must remain auditable; edits must not silently replace financial history.
 
 ## Confirmed role workspaces
@@ -45,6 +58,7 @@ The primary users work in a local/village business environment. Optimize for lar
 
 - Dashboard shows business summaries and recent activity appropriate to implemented modules.
 - Staff provides a searchable, paginated staff table and administrator-only staff account creation.
+- Administrator staff-account creation opens in a modal rather than expanding above the table.
 - Each staff name links to a dedicated detail page containing account details, total entry counts, and that staff member's paginated entry history.
 - Customers provides a searchable, filterable, paginated table. Each customer name links to a dedicated customer detail page.
 - Grading Settings lets administrators create crops, configure cleaning rates, and enable or disable crops.
@@ -64,7 +78,13 @@ The primary users work in a local/village business environment. Optimize for lar
 
 - The backend ledger is the authoritative customer balance for grading charges, payments, reversals, and adjustments.
 - Seed-sale charges, payments, waivers, and reversals post to the same authoritative customer ledger.
-- A user may explicitly waive a positive remainder up to ₹10. The bill and payment values remain unchanged; a separately attributed ledger adjustment clears the remainder. Larger balances remain due, and reversing a linked payment also reverses its waiver.
+- The staff Payments screen displays that combined authoritative ledger balance, including grading
+  and seed-sale activity, and must show a loading/error state rather than a false zero balance.
+- A user may explicitly waive any positive remainder. The bill and payment values remain unchanged; a separately attributed ledger adjustment clears the remainder, and reversing a linked payment also reverses its waiver. Selecting waiver when no balance remains has no financial effect.
+- The waiver control remains visible in grading, seed-sale entry, and customer payments without an amount-based eligibility limit.
+- A payment entered with a new grading entry may exceed that entry's charge up to the customer's
+  combined new charge and existing dues. The excess reduces the authoritative existing balance;
+  payments cannot create customer credit.
 
 ## Approved architecture direction
 

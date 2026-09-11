@@ -14,6 +14,8 @@ Status: implementation and verification complete on 2026-09-10.
 - Stock entry supports grams, kilograms, and quintals and normalizes exactly to whole grams.
 - Added append-only opening stock, stock addition, correction increase, and correction decrease
   movements with mandatory reasons and user attribution.
+- The admin stock modal exposes three plain-language actions: add stock, correct to the actual
+  current balance, and minus stock for sales or usage outside the system.
 - Serializable transactions prevent negative stock and duplicate opening-stock history.
 - Available stock is derived from signed stock movements. Low and zero stock are highlighted.
 - Added searchable/filterable/paginated seed table and dedicated stock-history route.

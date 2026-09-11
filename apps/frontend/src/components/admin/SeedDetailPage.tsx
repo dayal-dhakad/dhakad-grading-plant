@@ -8,6 +8,9 @@ const labels = {
   STOCK_ADDED: 'Stock added',
   ADJUSTMENT_INCREASE: 'Correction increase',
   ADJUSTMENT_DECREASE: 'Correction decrease',
+  EXTERNAL_SALE: 'Sold outside system',
+  SALE: 'Seed bill sale',
+  SALE_REVERSAL: 'Seed bill cancellation',
 };
 
 export const SeedDetailPage = () => {

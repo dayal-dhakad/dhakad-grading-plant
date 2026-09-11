@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useCreatePaymentMutation, useGetCustomerLedgerQuery } from '@/services/api/payment-api';
 import { TablePagination } from '../table/TablePagination';
 export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) => {
-  const { data: ledger } = useGetCustomerLedgerQuery(customerId);
+  const { data: ledger, isLoading, isError, refetch } = useGetCustomerLedgerQuery(customerId);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
   const [waiveSmallBalance, setWaiveSmallBalance] = useState(false);
@@ -30,12 +30,25 @@ export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) =>
     }
   };
   const remainder = Number(ledger?.balance ?? 0) - Number(amount || 0);
-  const canWaiveSmallBalance = remainder > 0 && remainder <= 10;
   return (
     <section className="card mt-5">
       <div>
-        <p className="card-label">Current ledger balance</p>
-        <p className="mt-1 text-3xl font-bold text-red-700">₹{ledger?.balance ?? '0.00'}</p>
+        <p className="card-label">Customer dues</p>
+        {isLoading ? (
+          <p className="mt-1 text-sm font-semibold text-stone-500">Calculating dues…</p>
+        ) : isError ? (
+          <div className="mt-1 flex items-center gap-3">
+            <p className="text-sm font-semibold text-red-700">Unable to load customer dues.</p>
+            <button
+              className="min-h-0 text-sm font-bold text-brand-800 underline"
+              onClick={() => void refetch()}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-3xl font-bold text-red-700">₹{ledger?.balance}</p>
+        )}
       </div>
       <form className="mt-5 grid gap-4 sm:grid-cols-3" onSubmit={(event) => void submit(event)}>
         <label className="field-label">
@@ -61,19 +74,19 @@ export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) =>
             <option value="ONLINE">Online</option>
           </select>
         </label>
-        <button className="primary-button self-end" disabled={state.isLoading}>
+        <button className="primary-button self-end" disabled={state.isLoading || !ledger}>
           Receive payment
         </button>
-        {canWaiveSmallBalance && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-3">
-            <input
-              type="checkbox"
-              checked={waiveSmallBalance}
-              onChange={(event) => setWaiveSmallBalance(event.target.checked)}
-            />
-            Waive the remaining ₹{remainder.toFixed(2)} and clear this customer&apos;s dues
-          </label>
-        )}
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-3">
+          <input
+            type="checkbox"
+            checked={waiveSmallBalance}
+            onChange={(event) => setWaiveSmallBalance(event.target.checked)}
+          />
+          {remainder > 0
+            ? `Waive the remaining ₹${remainder.toFixed(2)} and clear this customer's dues`
+            : 'Waive any remaining balance'}
+        </label>
         {message && (
           <p
             className={`text-sm font-semibold sm:col-span-3 ${message.startsWith('Receipt') ? 'text-green-700' : 'text-red-700'}`}

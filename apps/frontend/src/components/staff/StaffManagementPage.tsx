@@ -27,6 +27,13 @@ export const StaffManagementPage = () => {
   });
   const [create, createState] = useCreateStaffMutation();
   const [setStaffStatus] = useSetStaffStatusMutation();
+  const closeForm = () => {
+    setShowForm(false);
+    setName('');
+    setMobile('');
+    setPassword('');
+    setMessage('');
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const parsed = CreateStaffSchema.safeParse({ name, mobile, password });
@@ -36,11 +43,7 @@ export const StaffManagementPage = () => {
     }
     try {
       await create(parsed.data).unwrap();
-      setName('');
-      setMobile('');
-      setPassword('');
-      setMessage('');
-      setShowForm(false);
+      closeForm();
     } catch {
       setMessage('Unable to create staff. The mobile number may already be in use.');
     }
@@ -52,47 +55,86 @@ export const StaffManagementPage = () => {
           <p className="text-sm font-semibold text-brand-700">Team access</p>
           <h1 className="mt-1 text-3xl font-bold">Staff</h1>
         </div>
-        <button className="primary-button" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? 'Close form' : '+ Create staff account'}
+        <button className="primary-button" onClick={() => setShowForm(true)}>
+          + Create staff account
         </button>
       </div>
       {showForm && (
-        <form
-          onSubmit={(event) => void submit(event)}
-          className="card mt-6 grid gap-4 sm:grid-cols-2"
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-stone-950/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-staff-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeForm();
+          }}
         >
-          <h2 className="text-xl font-bold sm:col-span-2">New staff account</h2>
-          <label className="field-label">
-            Name
-            <input className="field mt-2" value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="field-label">
-            Mobile number
-            <input
-              className="field mt-2"
-              inputMode="numeric"
-              maxLength={10}
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            />
-          </label>
-          <label className="field-label sm:col-span-2">
-            Temporary password
-            <input
-              className="field mt-2"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {message && <p className="text-sm font-semibold text-red-700 sm:col-span-2">{message}</p>}
-          <button
-            className="primary-button sm:col-span-2 sm:justify-self-end"
-            disabled={createState.isLoading}
+          <form
+            onSubmit={(event) => void submit(event)}
+            className="grid max-h-[calc(100vh-2rem)] w-full max-w-2xl gap-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:grid-cols-2"
           >
-            Create account
-          </button>
-        </form>
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3 sm:col-span-2">
+              <div>
+                <p className="card-label">Team access</p>
+                <h2 id="create-staff-title" className="mt-1 text-xl font-bold">
+                  New staff account
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="grid min-h-9 w-9 place-items-center rounded-full text-xl text-stone-500 hover:bg-stone-100"
+                aria-label="Close staff form"
+                onClick={closeForm}
+              >
+                ×
+              </button>
+            </div>
+            <label className="field-label">
+              Name *
+              <input
+                className="field mt-2"
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="field-label">
+              Mobile number *
+              <input
+                className="field mt-2"
+                inputMode="numeric"
+                maxLength={10}
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              />
+            </label>
+            <label className="field-label sm:col-span-2">
+              Temporary password *
+              <input
+                className="field mt-2"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            {message && (
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 sm:col-span-2"
+              >
+                {message}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 border-t border-stone-200 pt-3 sm:col-span-2">
+              <button type="button" className="secondary-button" onClick={closeForm}>
+                Cancel
+              </button>
+              <button className="primary-button" disabled={createState.isLoading}>
+                {createState.isLoading ? 'Creating…' : 'Create account'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
       <section className="card mt-6">
         <input

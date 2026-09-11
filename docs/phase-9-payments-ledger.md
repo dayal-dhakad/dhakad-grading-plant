@@ -16,7 +16,7 @@ Status: implementation and verification complete on 2026-09-08; small-balance wa
 - Active allocated payments must be reversed before their grading entry can be cancelled.
 - Added customer ledger/payment panels and role-specific payment workspaces.
 - Payment numbers use `RCPT-` plus a zero-padded database sequence.
-- Staff can explicitly waive a remaining balance from ₹0.01 through ₹10.00 while creating a grading entry or receiving the final customer payment. The original charge and cash received remain unchanged; the waiver is a separate append-only ledger entry.
+- Staff can explicitly waive any positive remaining balance while creating a grading entry or receiving a customer payment. The original charge and cash received remain unchanged; the waiver is a separate append-only ledger entry.
 - Waivers are attributed to the authenticated user and allocated to grading entries. Reversing a linked payment also posts an explicit waiver reversal and restores the full amount due.
 
 ## API

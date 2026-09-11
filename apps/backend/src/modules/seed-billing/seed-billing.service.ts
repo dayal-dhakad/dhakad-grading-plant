@@ -101,16 +101,7 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
       if (paid.gt(net))
         throw new AppError(400, 'PAYMENT_EXCEEDS_TOTAL', 'Payment cannot exceed bill total');
       const remainder = net.minus(paid);
-      const waived =
-        input.waiveSmallBalance && remainder.gt(0) && remainder.lte(10)
-          ? remainder
-          : new Prisma.Decimal(0);
-      if (input.waiveSmallBalance && waived.isZero())
-        throw new AppError(
-          400,
-          'WAIVER_NOT_ALLOWED',
-          'Only a positive remainder up to ₹10 can be waived',
-        );
+      const waived = input.waiveSmallBalance && remainder.gt(0) ? remainder : new Prisma.Decimal(0);
       const bill = await tx.seedBill.create({
         data: {
           customerId: input.customerId,

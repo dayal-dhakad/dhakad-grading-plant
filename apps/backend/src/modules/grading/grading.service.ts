@@ -34,7 +34,10 @@ const present = (entry: Prisma.GradingEntryGetPayload<{ include: typeof include 
     initialPaidAmount: entry.paidAmount.toFixed(2),
     paidAmount: totalPaid.toFixed(2),
     waivedAmount: entry.waivedAmount.toFixed(2),
-    dueAmount: entry.calculatedAmount.minus(totalPaid).minus(entry.waivedAmount).toFixed(2),
+    dueAmount: Prisma.Decimal.max(
+      0,
+      entry.calculatedAmount.minus(totalPaid).minus(entry.waivedAmount),
+    ).toFixed(2),
     paymentMethod: entry.paymentMethod,
     serviceDate: entry.serviceDate.toISOString().slice(0, 10),
     notes: entry.notes,
@@ -53,27 +56,13 @@ export const calculateGradingAmount = (
   unit?: 'QUINTAL' | 'KG',
 ) => quantityInQuintals(quantity, unit).mul(rate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
-export const SMALL_BALANCE_WAIVER_LIMIT = new Prisma.Decimal(10);
 export const calculateSmallBalanceWaiver = (
   total: Prisma.Decimal,
   paid: Prisma.Decimal,
   requested: boolean,
 ) => {
   const remainder = total.minus(paid);
-  if (!requested) return new Prisma.Decimal(0);
-  if (remainder.lte(0) || remainder.gt(SMALL_BALANCE_WAIVER_LIMIT))
-    throw new AppError(
-      400,
-      'SMALL_BALANCE_WAIVER_NOT_ALLOWED',
-      `Only a remaining balance up to ₹${SMALL_BALANCE_WAIVER_LIMIT.toFixed(2)} can be waived`,
-      [
-        {
-          path: 'waiveSmallBalance',
-          message: 'The remaining balance must be between ₹0.01 and ₹10.00',
-        },
-      ],
-    );
-  return remainder;
+  return requested && remainder.gt(0) ? remainder : new Prisma.Decimal(0);
 };
 
 export const getGradingReferences = async () => ({
@@ -166,70 +155,79 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
   const rate = input.rate ? new Prisma.Decimal(input.rate) : crop.cleaningRate;
   const calculatedAmount = calculateGradingAmount(input.quantity, rate, input.quantityUnit);
   const paidAmount = new Prisma.Decimal(input.paidAmount);
-  if (paidAmount.gt(calculatedAmount))
-    throw new AppError(
-      400,
-      'PAYMENT_EXCEEDS_TOTAL',
-      'Amount paid cannot exceed the calculated total',
-      [{ path: 'paidAmount', message: `Enter an amount up to ${calculatedAmount.toFixed(2)}` }],
-    );
-  const waivedAmount = calculateSmallBalanceWaiver(
-    calculatedAmount,
-    paidAmount,
-    input.waiveSmallBalance,
-  );
-  const entry = await prisma.$transaction(async (transaction) => {
-    const created = await transaction.gradingEntry.create({
-      data: {
-        customerId: customer.id,
-        cropId: crop.id,
-        unitId: crop.cleaningRateUnitId,
-        quantity,
-        rate,
-        calculatedAmount,
+  const entry = await prisma.$transaction(
+    async (transaction) => {
+      const ledger = await transaction.customerLedgerEntry.aggregate({
+        where: { customerId: customer.id },
+        _sum: { amount: true },
+      });
+      const existingDue = Prisma.Decimal.max(0, ledger._sum.amount ?? 0);
+      const totalPayable = calculatedAmount.plus(existingDue);
+      if (paidAmount.gt(totalPayable))
+        throw new AppError(
+          400,
+          'PAYMENT_EXCEEDS_TOTAL_DUE',
+          'Amount paid cannot exceed the new charge plus existing dues',
+          [{ path: 'paidAmount', message: `Enter an amount up to ${totalPayable.toFixed(2)}` }],
+        );
+      const waivedAmount = calculateSmallBalanceWaiver(
+        totalPayable,
         paidAmount,
-        waivedAmount,
-        paymentMethod: input.paymentMethod,
-        serviceDate: new Date(`${input.serviceDate}T00:00:00.000Z`),
-        notes: input.notes || null,
-        createdById: userId,
-      },
-      include,
-    });
-    await transaction.customerLedgerEntry.create({
-      data: {
-        customerId: customer.id,
-        entryType: LedgerEntryType.GRADING_CHARGE,
-        amount: calculatedAmount,
-        gradingEntryId: created.id,
-        description: `Grading charge GR-${String(created.entryNumber).padStart(6, '0')}`,
-        createdById: userId,
-      },
-    });
-    if (paidAmount.gt(0))
+        input.waiveSmallBalance,
+      );
+      const created = await transaction.gradingEntry.create({
+        data: {
+          customerId: customer.id,
+          cropId: crop.id,
+          unitId: crop.cleaningRateUnitId,
+          quantity,
+          rate,
+          calculatedAmount,
+          paidAmount,
+          waivedAmount,
+          paymentMethod: input.paymentMethod,
+          serviceDate: new Date(`${input.serviceDate}T00:00:00.000Z`),
+          notes: input.notes || null,
+          createdById: userId,
+        },
+        include,
+      });
       await transaction.customerLedgerEntry.create({
         data: {
           customerId: customer.id,
-          entryType: LedgerEntryType.GRADING_PAYMENT,
-          amount: paidAmount.negated(),
+          entryType: LedgerEntryType.GRADING_CHARGE,
+          amount: calculatedAmount,
           gradingEntryId: created.id,
-          description: 'Payment recorded with grading entry',
+          description: `Grading charge GR-${String(created.entryNumber).padStart(6, '0')}`,
           createdById: userId,
         },
       });
-    if (waivedAmount.gt(0))
-      await transaction.customerLedgerEntry.create({
-        data: {
-          customerId: customer.id,
-          entryType: LedgerEntryType.SMALL_BALANCE_WAIVER,
-          amount: waivedAmount.negated(),
-          gradingEntryId: created.id,
-          description: `Small-balance waiver for GR-${String(created.entryNumber).padStart(6, '0')}`,
-          createdById: userId,
-        },
-      });
-    return created;
-  });
+      if (paidAmount.gt(0))
+        await transaction.customerLedgerEntry.create({
+          data: {
+            customerId: customer.id,
+            entryType: LedgerEntryType.GRADING_PAYMENT,
+            amount: paidAmount.negated(),
+            gradingEntryId: created.id,
+            description: 'Payment recorded with grading entry',
+            createdById: userId,
+          },
+        });
+      if (waivedAmount.gt(0))
+        await transaction.customerLedgerEntry.create({
+          data: {
+            customerId: customer.id,
+            entryType: LedgerEntryType.SMALL_BALANCE_WAIVER,
+            amount: waivedAmount.negated(),
+            gradingEntryId: created.id,
+            description: `Small-balance waiver for GR-${String(created.entryNumber).padStart(6, '0')}`,
+            createdById: userId,
+          },
+        });
+      return created;
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
   return present(entry);
 };
 
@@ -355,15 +353,24 @@ export const reviseGradingEntry = async (
       const quantity = quantityInQuintals(input.quantity, input.quantityUnit);
       const calculatedAmount = calculateGradingAmount(input.quantity, rate, input.quantityUnit);
       const paidAmount = new Prisma.Decimal(input.paidAmount);
-      if (paidAmount.gt(calculatedAmount))
+      const oldNet = current.calculatedAmount.minus(current.paidAmount).minus(current.waivedAmount);
+      const ledger = await transaction.customerLedgerEntry.aggregate({
+        where: { customerId: input.customerId },
+        _sum: { amount: true },
+      });
+      const balanceWithoutCurrent = (ledger._sum.amount ?? new Prisma.Decimal(0)).minus(
+        current.customerId === input.customerId ? oldNet : 0,
+      );
+      const totalPayable = calculatedAmount.plus(Prisma.Decimal.max(0, balanceWithoutCurrent));
+      if (paidAmount.gt(totalPayable))
         throw new AppError(
           400,
-          'PAYMENT_EXCEEDS_TOTAL',
-          'Amount paid cannot exceed the calculated total',
-          [{ path: 'paidAmount', message: `Enter an amount up to ${calculatedAmount.toFixed(2)}` }],
+          'PAYMENT_EXCEEDS_TOTAL_DUE',
+          'Amount paid cannot exceed the revised charge plus existing dues',
+          [{ path: 'paidAmount', message: `Enter an amount up to ${totalPayable.toFixed(2)}` }],
         );
       const waivedAmount = calculateSmallBalanceWaiver(
-        calculatedAmount,
+        totalPayable,
         paidAmount,
         input.waiveSmallBalance,
       );
@@ -392,7 +399,6 @@ export const reviseGradingEntry = async (
           revisedById: userId,
         },
       });
-      const oldNet = current.calculatedAmount.minus(current.paidAmount).minus(current.waivedAmount);
       const newNet = calculatedAmount.minus(paidAmount).minus(waivedAmount);
       if (current.customerId === input.customerId) {
         const delta = newNet.minus(oldNet);

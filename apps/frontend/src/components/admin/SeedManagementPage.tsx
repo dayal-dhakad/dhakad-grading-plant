@@ -354,9 +354,7 @@ const SeedProductForm = ({ product, onClose }: { product?: SeedProduct; onClose:
 };
 
 const StockForm = ({ product, onClose }: { product: SeedProduct; onClose: () => void }) => {
-  const [movementType, setMovementType] = useState<
-    'OPENING_STOCK' | 'STOCK_ADDED' | 'ADJUSTMENT_INCREASE' | 'ADJUSTMENT_DECREASE'
-  >(Number(product.stockGrams) === 0 ? 'OPENING_STOCK' : 'STOCK_ADDED');
+  const [action, setAction] = useState<'ADD' | 'CORRECT' | 'EXTERNAL_SALE'>('ADD');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState<Unit>('KILOGRAM');
   const [reason, setReason] = useState('');
@@ -365,7 +363,7 @@ const StockForm = ({ product, onClose }: { product: SeedProduct; onClose: () => 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await add({ id: product.id, input: { movementType, quantity, unit, reason } }).unwrap();
+      await add({ id: product.id, input: { action, quantity, unit, reason } }).unwrap();
       onClose();
     } catch {
       setMessage('Unable to update stock. Check quantity, reason, and available balance.');
@@ -382,20 +380,43 @@ const StockForm = ({ product, onClose }: { product: SeedProduct; onClose: () => 
         <p className="mt-1 text-sm text-stone-600">Available: {displayStock(product.stockGrams)}</p>
         <label className="field-label mt-4 block">
           Action
-          <select
-            className="compact-field mt-1"
-            value={movementType}
-            onChange={(e) => setMovementType(e.target.value as typeof movementType)}
-          >
-            <option value="OPENING_STOCK">Opening stock</option>
-            <option value="STOCK_ADDED">Add stock</option>
-            <option value="ADJUSTMENT_INCREASE">Correction increase</option>
-            <option value="ADJUSTMENT_DECREASE">Correction decrease</option>
-          </select>
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            {(
+              [
+                ['ADD', 'Add stock'],
+                ['CORRECT', 'Correct stock'],
+                ['EXTERNAL_SALE', 'Minus stock'],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border px-2 text-center text-sm font-bold ${action === value ? 'border-brand-700 bg-brand-50 text-brand-800' : 'text-stone-600'}`}
+                key={value}
+              >
+                <input
+                  className="sr-only"
+                  type="radio"
+                  checked={action === value}
+                  onChange={() => {
+                    setAction(value);
+                    setQuantity('');
+                    setReason('');
+                  }}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </label>
+        <p className="mt-2 rounded-lg bg-stone-50 p-2 text-xs text-stone-600">
+          {action === 'ADD'
+            ? 'Increase stock by the quantity entered.'
+            : action === 'CORRECT'
+              ? 'Enter the actual stock available now. The system records the difference.'
+              : 'Reduce stock sold or used outside this system.'}
+        </p>
         <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
           <label className="field-label">
-            Quantity
+            {action === 'CORRECT' ? 'Actual stock now' : 'Quantity'}
             <input
               className="compact-field mt-1"
               autoFocus

@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState, type FormEvent } from 'react';
 import {
   CreateCustomerSchema,
   CreateSeedBillSchema,
@@ -11,6 +11,7 @@ import {
   useGetCustomersQuery,
 } from '@/services/api/customer-api';
 import { MobileNumberInput } from '@/components/form/MobileNumberInput';
+import { SuccessToast } from '@/components/feedback/SuccessToast';
 import { useGetSeedProductsQuery } from '@/services/api/seed-management-api';
 import { useCreateSeedBillMutation } from '@/services/api/seed-billing-api';
 
@@ -76,8 +77,28 @@ export const SeedSalePage = () => {
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState('');
   const [created, setCreated] = useState('');
+  const closeSuccessToast = useCallback(() => setCreated(''), []);
   const [pendingBill, setPendingBill] = useState<CreateSeedBillInput>();
   const [createBill, billState] = useCreateSeedBillMutation();
+
+  const reset = () => {
+    setMobile('');
+    setCustomer(undefined);
+    setAddingCustomer(false);
+    setNewCustomerName('');
+    setNewCustomerVillage('');
+    setCustomerMessage('');
+    setLines([blank()]);
+    setPaidAmount('');
+    setPaymentEdited(false);
+    setPaymentMethod('CASH');
+    setWaiveSmallBalance(false);
+    setServiceDate(today());
+    setNotes('');
+    setMessage('');
+    setCreated('');
+    setPendingBill(undefined);
+  };
 
   const totals = useMemo(
     () =>
@@ -96,7 +117,6 @@ export const SeedSalePage = () => {
   );
   const displayedPaid = paymentEdited ? paidAmount : money(totals.net);
   const remaining = Math.max(0, totals.net - Number(displayedPaid || 0));
-  const canWaive = remaining > 0 && remaining <= 10;
   const updateLine = (index: number, patch: Partial<Line>) =>
     setLines((current) =>
       current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)),
@@ -130,6 +150,60 @@ export const SeedSalePage = () => {
   const review = (event: FormEvent) => {
     event.preventDefault();
     setMessage('');
+    if (!customer) {
+      setMessage('Select an active customer before reviewing the receipt.');
+      return;
+    }
+    if (lines.some((line) => !line.productId)) {
+      setMessage('Select a seed product for every bill line.');
+      return;
+    }
+    if (new Set(lines.map((line) => line.productId)).size !== lines.length) {
+      setMessage('Each seed product can be added only once.');
+      return;
+    }
+    const amountPattern = /^\d+(\.\d{1,2})?$/;
+    const quantityPattern = /^\d+(\.\d{1,5})?$/;
+    for (const [index, line] of lines.entries()) {
+      const product = catalog?.products.find((item) => item.id === line.productId);
+      const multiplier = line.unit === 'GRAM' ? 1 : line.unit === 'KILOGRAM' ? 1000 : 100000;
+      const requestedGrams = Number(line.quantity) * multiplier;
+      if (
+        !quantityPattern.test(line.quantity) ||
+        Number(line.quantity) <= 0 ||
+        !Number.isInteger(requestedGrams)
+      ) {
+        setMessage(
+          `Enter a valid quantity for seed line ${index + 1}. It must resolve to whole grams.`,
+        );
+        return;
+      }
+      if (!amountPattern.test(line.ratePerKg) || Number(line.ratePerKg) <= 0) {
+        setMessage(`Enter a valid selling rate for seed line ${index + 1}.`);
+        return;
+      }
+      if (!amountPattern.test(line.discountValue)) {
+        setMessage(`Enter a valid discount for seed line ${index + 1}.`);
+        return;
+      }
+      const value = lineTotals(line);
+      if (
+        (line.discountType === 'NONE' && Number(line.discountValue) !== 0) ||
+        (line.discountType === 'PERCENTAGE' && Number(line.discountValue) > 100) ||
+        value.discount > value.gross
+      ) {
+        setMessage(`Discount cannot be greater than the line amount for seed line ${index + 1}.`);
+        return;
+      }
+      if (!product || requestedGrams > Number(product.stockGrams)) {
+        setMessage(`Insufficient stock for ${product?.name ?? `seed line ${index + 1}`}.`);
+        return;
+      }
+    }
+    if (!amountPattern.test(displayedPaid) || Number(displayedPaid) > totals.net) {
+      setMessage(`Payment cannot be greater than the bill total of ₹${money(totals.net)}.`);
+      return;
+    }
     const parsed = CreateSeedBillSchema.safeParse({
       customerId: customer?.id ?? '',
       items: lines,
@@ -150,13 +224,8 @@ export const SeedSalePage = () => {
     setMessage('');
     try {
       const bill = await createBill(pendingBill).unwrap();
+      reset();
       setCreated(`SEED-${String(bill.billNumber).padStart(6, '0')} saved successfully`);
-      setPendingBill(undefined);
-      setLines([blank()]);
-      setPaidAmount('');
-      setPaymentEdited(false);
-      setWaiveSmallBalance(false);
-      setNotes('');
     } catch {
       setMessage('Unable to save bill. Check stock, quantities, rates, and discounts.');
     }
@@ -195,22 +264,44 @@ export const SeedSalePage = () => {
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
             <p className="card-label">Seed items</p>
-            <div className="mt-2 divide-y rounded-lg border">
-              {lines.map((line, index) => (
-                <div
-                  className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[1fr_auto_auto]"
-                  key={index}
-                >
-                  <strong>
-                    {catalog?.products.find((item) => item.id === line.productId)?.name}
-                  </strong>
-                  <span>
-                    {line.quantity}{' '}
-                    {line.unit === 'GRAM' ? 'g' : line.unit === 'KILOGRAM' ? 'kg' : 'quintal'}
-                  </span>
-                  <strong className="text-brand-800">₹{money(lineTotals(line).net)}</strong>
-                </div>
-              ))}
+            <div className="mt-2 overflow-x-auto rounded-lg border">
+              <div className="grid min-w-[720px] grid-cols-[1.4fr_0.8fr_0.8fr_1fr_0.8fr_0.8fr] gap-3 bg-stone-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-stone-500">
+                <span>Seed</span>
+                <span>Quantity</span>
+                <span>Rate/kg</span>
+                <span>Discount</span>
+                <span>Gross</span>
+                <span className="text-right">Total</span>
+              </div>
+              <div className="divide-y">
+                {lines.map((line, index) => {
+                  const itemTotal = lineTotals(line);
+                  const discount =
+                    line.discountType === 'NONE'
+                      ? 'None'
+                      : line.discountType === 'PERCENTAGE'
+                        ? `${line.discountValue}% (₹${money(itemTotal.discount)})`
+                        : `₹${money(line.discountValue)}`;
+                  return (
+                    <div
+                      className="grid min-w-[720px] grid-cols-[1.4fr_0.8fr_0.8fr_1fr_0.8fr_0.8fr] items-center gap-3 px-3 py-2 text-sm"
+                      key={index}
+                    >
+                      <strong>
+                        {catalog?.products.find((item) => item.id === line.productId)?.name}
+                      </strong>
+                      <span>
+                        {line.quantity}{' '}
+                        {line.unit === 'GRAM' ? 'g' : line.unit === 'KILOGRAM' ? 'kg' : 'quintal'}
+                      </span>
+                      <span>₹{money(line.ratePerKg)}</span>
+                      <span className="text-amber-700">{discount}</span>
+                      <span>₹{money(itemTotal.gross)}</span>
+                      <strong className="text-right text-brand-800">₹{money(itemTotal.net)}</strong>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
           {notes && (
@@ -263,154 +354,155 @@ export const SeedSalePage = () => {
   }
 
   return (
-    <form
-      className="card mt-4 grid w-full gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:gap-x-6"
-      onSubmit={review}
-    >
-      <div className="relative">
-        <MobileNumberInput
-          id="seed-customer-mobile"
-          label="Customer mobile number"
-          value={mobile}
-          onChange={(value) => {
-            setMobile(value);
-            setCustomer(undefined);
-            setAddingCustomer(false);
-            setCustomerMessage('');
-          }}
-          onBlur={() => undefined}
-          error={undefined}
-          compact
-        />
-        {!customer && !addingCustomer && search.length >= 3 && (
-          <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-white shadow-xl">
-            {matches?.customers.length ? (
-              matches.customers.map((item) =>
-                item.isActive ? (
-                  <button
-                    type="button"
-                    className="block min-h-0 w-full border-b px-3 py-2.5 text-left text-sm hover:bg-brand-50"
-                    key={item.id}
-                    onClick={() => chooseCustomer(item)}
-                  >
-                    <span className="font-bold">{item.mobile}</span>
-                    <span className="ml-3">
-                      {item.name} · {item.village}
-                    </span>
-                  </button>
-                ) : (
-                  <div
-                    className="border-b border-red-100 bg-red-50 px-3 py-2.5 text-sm"
-                    key={item.id}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>
-                        <b>{item.mobile}</b>
-                        <span className="ml-3">
-                          {item.name} · {item.village}
-                        </span>
+    <>
+      <SuccessToast message={created} onClose={closeSuccessToast} />
+      <form
+        className="card mt-4 grid w-full gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:gap-x-6"
+        onSubmit={review}
+      >
+        <div className="relative">
+          <MobileNumberInput
+            id="seed-customer-mobile"
+            label="Customer mobile number *"
+            value={mobile}
+            onChange={(value) => {
+              setMobile(value);
+              setCustomer(undefined);
+              setAddingCustomer(false);
+              setCustomerMessage('');
+            }}
+            onBlur={() => undefined}
+            error={!customer && message ? message : undefined}
+            compact
+          />
+          {!customer && !addingCustomer && search.length >= 3 && (
+            <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-white shadow-xl">
+              {matches?.customers.length ? (
+                matches.customers.map((item) =>
+                  item.isActive ? (
+                    <button
+                      type="button"
+                      className="block min-h-0 w-full border-b px-3 py-2.5 text-left text-sm hover:bg-brand-50"
+                      key={item.id}
+                      onClick={() => chooseCustomer(item)}
+                    >
+                      <span className="font-bold">{item.mobile}</span>
+                      <span className="ml-3">
+                        {item.name} · {item.village}
                       </span>
-                      <span className="status-badge status-badge-warning">Inactive</span>
+                    </button>
+                  ) : (
+                    <div
+                      className="border-b border-red-100 bg-red-50 px-3 py-2.5 text-sm"
+                      key={item.id}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span>
+                          <b>{item.mobile}</b>
+                          <span className="ml-3">
+                            {item.name} · {item.village}
+                          </span>
+                        </span>
+                        <span className="status-badge status-badge-warning">Inactive</span>
+                      </div>
+                      <p className="mt-1 text-xs font-semibold text-red-700">
+                        This customer cannot be selected.
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs font-semibold text-red-700">
-                      This customer cannot be selected.
-                    </p>
-                  </div>
-                ),
-              )
-            ) : isSearching ? (
-              <p className="p-3 text-sm text-stone-500">Searching...</p>
-            ) : (
-              <div className="flex items-center justify-between gap-3 p-3">
-                <p className="text-sm text-stone-600">No matching customer</p>
-                {search.length === 10 && (
-                  <button
-                    type="button"
-                    className="min-h-0 text-sm font-bold text-brand-800"
-                    onClick={() => setAddingCustomer(true)}
-                  >
-                    + Add customer
-                  </button>
-                )}
+                  ),
+                )
+              ) : isSearching ? (
+                <p className="p-3 text-sm text-stone-500">Searching...</p>
+              ) : (
+                <div className="flex items-center justify-between gap-3 p-3">
+                  <p className="text-sm text-stone-600">No matching customer</p>
+                  {search.length === 10 && (
+                    <button
+                      type="button"
+                      className="min-h-0 text-sm font-bold text-brand-800"
+                      onClick={() => setAddingCustomer(true)}
+                    >
+                      + Add customer
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {customer && (
+          <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5">
+            <div className="flex justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-brand-900">{customer.name}</p>
+                <p className="mt-0.5 text-xs text-stone-600">
+                  {customer.mobile} · {customer.village}
+                </p>
               </div>
-            )}
+              <button
+                type="button"
+                className="min-h-0 text-xs font-semibold text-brand-800"
+                onClick={() => {
+                  setCustomer(undefined);
+                  setMobile('');
+                }}
+              >
+                Change
+              </button>
+            </div>
+            <div className="mt-2 border-t border-brand-200 pt-2">
+              <p className="card-label">Existing dues</p>
+              <p className="mt-0.5 text-base font-bold text-red-700">₹{existingDue ?? '0.00'}</p>
+            </div>
           </div>
         )}
-      </div>
-      {customer && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5">
-          <div className="flex justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold text-brand-900">{customer.name}</p>
-              <p className="mt-0.5 text-xs text-stone-600">
-                {customer.mobile} · {customer.village}
-              </p>
+        {addingCustomer && !customer && (
+          <section className="rounded-lg border border-brand-200 bg-brand-50 p-3 sm:col-span-2">
+            <div className="flex items-center justify-between border-b border-brand-200 pb-2">
+              <p className="text-sm font-bold text-brand-900">New customer</p>
+              <b>{mobile}</b>
             </div>
-            <button
-              type="button"
-              className="min-h-0 text-xs font-semibold text-brand-800"
-              onClick={() => {
-                setCustomer(undefined);
-                setMobile('');
-              }}
-            >
-              Change
-            </button>
-          </div>
-          <div className="mt-2 border-t border-brand-200 pt-2">
-            <p className="card-label">Existing dues</p>
-            <p className="mt-0.5 text-base font-bold text-red-700">₹{existingDue ?? '0.00'}</p>
-          </div>
-        </div>
-      )}
-      {addingCustomer && !customer && (
-        <section className="rounded-lg border border-brand-200 bg-brand-50 p-3 sm:col-span-2">
-          <div className="flex items-center justify-between border-b border-brand-200 pb-2">
-            <p className="text-sm font-bold text-brand-900">New customer</p>
-            <b>{mobile}</b>
-          </div>
-          <div className="mt-2 grid max-w-xl gap-2">
-            <label className="field-label">
-              Customer name
-              <input
-                className="compact-field mt-1"
-                autoFocus
-                value={newCustomerName}
-                onChange={(event) => setNewCustomerName(event.target.value)}
-              />
-            </label>
-            <label className="field-label">
-              Village name
-              <input
-                className="compact-field mt-1"
-                value={newCustomerVillage}
-                onChange={(event) => setNewCustomerVillage(event.target.value)}
-              />
-            </label>
-          </div>
-          {customerMessage && (
-            <p className="mt-2 text-sm font-semibold text-red-700">{customerMessage}</p>
-          )}
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              className="primary-button min-h-10 px-4 py-2 text-sm"
-              disabled={customerState.isLoading}
-              onClick={() => void addCustomer()}
-            >
-              Add and select customer
-            </button>
-            <button
-              type="button"
-              className="secondary-button min-h-10 px-4 py-2 text-sm"
-              onClick={() => setAddingCustomer(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </section>
-      )}
-      {customer && (
+            <div className="mt-2 grid max-w-xl gap-2">
+              <label className="field-label">
+                Customer name
+                <input
+                  className="compact-field mt-1"
+                  autoFocus
+                  value={newCustomerName}
+                  onChange={(event) => setNewCustomerName(event.target.value)}
+                />
+              </label>
+              <label className="field-label">
+                Village name
+                <input
+                  className="compact-field mt-1"
+                  value={newCustomerVillage}
+                  onChange={(event) => setNewCustomerVillage(event.target.value)}
+                />
+              </label>
+            </div>
+            {customerMessage && (
+              <p className="mt-2 text-sm font-semibold text-red-700">{customerMessage}</p>
+            )}
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                className="primary-button min-h-10 px-4 py-2 text-sm"
+                disabled={customerState.isLoading}
+                onClick={() => void addCustomer()}
+              >
+                Add and select customer
+              </button>
+              <button
+                type="button"
+                className="secondary-button min-h-10 px-4 py-2 text-sm"
+                onClick={() => setAddingCustomer(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        )}
         <>
           <section className="sm:col-span-2">
             <div className="mb-2 flex items-center justify-between">
@@ -430,7 +522,7 @@ export const SeedSalePage = () => {
                   <div className="rounded-lg border border-stone-200 bg-stone-50 p-2.5" key={index}>
                     <div className="grid gap-2 md:grid-cols-[minmax(160px,1.7fr)_minmax(90px,0.8fr)_110px_minmax(100px,0.8fr)_minmax(170px,1.25fr)_90px]">
                       <label className="field-label">
-                        Seed
+                        Seed *
                         <select
                           className="compact-field mt-1"
                           value={line.productId}
@@ -456,7 +548,7 @@ export const SeedSalePage = () => {
                         </select>
                       </label>
                       <label className="field-label">
-                        Quantity
+                        Quantity *
                         <input
                           className="compact-field mt-1"
                           inputMode="decimal"
@@ -468,7 +560,7 @@ export const SeedSalePage = () => {
                         />
                       </label>
                       <label className="field-label">
-                        Unit
+                        Unit *
                         <select
                           className="compact-field mt-1"
                           value={line.unit}
@@ -483,7 +575,7 @@ export const SeedSalePage = () => {
                         </select>
                       </label>
                       <label className="field-label">
-                        Rate (₹/kg)
+                        Rate (₹/kg) *
                         <input
                           className="compact-field mt-1"
                           inputMode="decimal"
@@ -495,7 +587,7 @@ export const SeedSalePage = () => {
                         />
                       </label>
                       <div>
-                        <span className="field-label">Discount</span>
+                        <span className="field-label">Discount *</span>
                         <div className="mt-1 flex gap-2">
                           <select
                             className="compact-field w-28"
@@ -547,7 +639,7 @@ export const SeedSalePage = () => {
             </div>
           </section>
           <label className="field-label">
-            Service date
+            Service date *
             <input
               className="compact-field mt-1"
               type="date"
@@ -571,7 +663,7 @@ export const SeedSalePage = () => {
             </p>
           </div>
           <label className="field-label">
-            Amount paid
+            Amount paid *
             <span className="mt-1 flex min-h-14 items-center rounded-xl border-2 border-brand-700 bg-brand-50 px-4 shadow-sm">
               <span className="text-xl font-black text-brand-900">₹</span>
               <input
@@ -586,18 +678,20 @@ export const SeedSalePage = () => {
               />
             </span>
           </label>
-          {canWaive && (
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2">
-              <input
-                type="checkbox"
-                checked={waiveSmallBalance}
-                onChange={(event) => setWaiveSmallBalance(event.target.checked)}
-              />
-              Waive the remaining ₹{money(remaining)} and mark this bill settled
-            </label>
-          )}
+          <label
+            className="flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2"
+          >
+            <input
+              type="checkbox"
+              checked={waiveSmallBalance}
+              onChange={(event) => setWaiveSmallBalance(event.target.checked)}
+            />
+            {remaining > 0
+              ? `Waive the remaining ₹${money(remaining)} and mark this bill settled`
+              : 'Waive any remaining balance'}
+          </label>
           <fieldset>
-            <legend className="field-label">Payment mode</legend>
+            <legend className="field-label">Payment mode *</legend>
             <div className="mt-1 grid grid-cols-2 gap-2">
               {(['CASH', 'ONLINE'] as const).map((item) => (
                 <label
@@ -620,25 +714,16 @@ export const SeedSalePage = () => {
               Review receipt
             </button>
           </div>
-          {message && <p className="text-sm font-semibold text-red-700 sm:col-span-2">{message}</p>}
-          {created && (
-            <div className="rounded-xl bg-green-50 p-4 font-semibold text-green-800 sm:col-span-2">
-              {created}
-              <button
-                type="button"
-                className="ml-3 underline"
-                onClick={() => {
-                  setCustomer(undefined);
-                  setMobile('');
-                  setCreated('');
-                }}
-              >
-                Start another customer
-              </button>
-            </div>
+          {message && (
+            <p
+              className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 sm:col-span-2"
+              role="alert"
+            >
+              {message}
+            </p>
           )}
         </>
-      )}
-    </form>
+      </form>
+    </>
   );
 };

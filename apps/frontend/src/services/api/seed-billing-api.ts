@@ -29,19 +29,30 @@ export const seedBillingApi = baseApi.injectEndpoints({
         { type: 'SeedBill', id: 'LIST' },
         { type: 'SeedProduct', id: 'LIST' },
         { type: 'Ledger', id: 'LIST' },
+        { type: 'Ledger', id: customerId },
         { type: 'Grading', id: `DUE-${customerId}` },
       ],
     }),
-    cancelSeedBill: b.mutation<void, { id: string; reason: string }>({
+    cancelSeedBill: b.mutation<
+      ReturnType<typeof SeedBillResponseSchema.parse>['bill'],
+      { id: string; reason: string }
+    >({
       query: ({ id, reason }) => ({
         url: `/seed-bills/${id}/cancel`,
         method: 'POST',
         body: { reason },
       }),
-      invalidatesTags: [
+      transformResponse: (v: unknown) => SeedBillResponseSchema.parse(v).bill,
+      invalidatesTags: (bill) => [
         { type: 'SeedBill', id: 'LIST' },
         { type: 'SeedProduct', id: 'LIST' },
         { type: 'Ledger', id: 'LIST' },
+        ...(bill
+          ? [
+              { type: 'Ledger' as const, id: bill.customer.id },
+              { type: 'Grading' as const, id: `DUE-${bill.customer.id}` },
+            ]
+          : []),
       ],
     }),
   }),

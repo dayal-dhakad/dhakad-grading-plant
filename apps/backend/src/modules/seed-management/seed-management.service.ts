@@ -210,9 +210,6 @@ export const setSeedStatus = async (id: string, isActive: boolean) => {
 
 export const addSeedStock = async (id: string, input: AddSeedStockInput, userId: string) => {
   const enteredUnit = input.unit;
-  const absoluteGrams = toGrams(input.quantity, enteredUnit);
-  const decrease = input.movementType === SeedStockMovementType.ADJUSTMENT_DECREASE;
-  const signedGrams = decrease ? -absoluteGrams : absoluteGrams;
   return prisma.$transaction(
     async (transaction) => {
       const product = await transaction.product.findUnique({
@@ -222,18 +219,52 @@ export const addSeedStock = async (id: string, input: AddSeedStockInput, userId:
       if (!product) throw new AppError(404, 'SEED_NOT_FOUND', 'Seed was not found');
       if (!product.isActive)
         throw new AppError(400, 'SEED_INACTIVE', 'Reactivate this seed before adding stock');
-      const movements = await transaction.seedStockMovement.count({ where: { productId: id } });
-      if (input.movementType === SeedStockMovementType.OPENING_STOCK && movements > 0)
-        throw new AppError(409, 'OPENING_STOCK_EXISTS', 'Opening stock has already been recorded');
       const balance = (await balancesFor([id], transaction)).get(id) ?? 0n;
+      const multiplier =
+        enteredUnit === SeedQuantityUnit.GRAM
+          ? 1
+          : enteredUnit === SeedQuantityUnit.KILOGRAM
+            ? 1000
+            : 100000;
+      const enteredGrams = new Prisma.Decimal(input.quantity).mul(multiplier);
+      if (!enteredGrams.isInteger() || enteredGrams.lt(0))
+        throw new AppError(400, 'INVALID_SEED_QUANTITY', 'Quantity must resolve to whole grams');
+      const absoluteGrams = BigInt(enteredGrams.toFixed(0));
+      if (input.action !== 'CORRECT' && absoluteGrams === 0n)
+        throw new AppError(400, 'INVALID_SEED_QUANTITY', 'Quantity must be greater than zero');
+      const signedGrams =
+        input.action === 'CORRECT'
+          ? absoluteGrams - balance
+          : input.action === 'EXTERNAL_SALE'
+            ? -absoluteGrams
+            : absoluteGrams;
+      if (signedGrams === 0n)
+        throw new AppError(
+          400,
+          'STOCK_ALREADY_CORRECT',
+          'Current stock already matches this value',
+        );
       if (balance + signedGrams < 0n)
         throw new AppError(400, 'INSUFFICIENT_STOCK', 'Stock cannot become negative');
+      const movementType =
+        input.action === 'ADD'
+          ? SeedStockMovementType.STOCK_ADDED
+          : input.action === 'EXTERNAL_SALE'
+            ? SeedStockMovementType.EXTERNAL_SALE
+            : signedGrams > 0n
+              ? SeedStockMovementType.ADJUSTMENT_INCREASE
+              : SeedStockMovementType.ADJUSTMENT_DECREASE;
       await transaction.seedStockMovement.create({
         data: {
           productId: id,
-          movementType: input.movementType,
+          movementType,
           quantityGrams: signedGrams,
-          enteredQuantity: new Prisma.Decimal(input.quantity),
+          enteredQuantity:
+            input.action === 'CORRECT'
+              ? new Prisma.Decimal((signedGrams < 0n ? -signedGrams : signedGrams).toString()).div(
+                  multiplier,
+                )
+              : new Prisma.Decimal(input.quantity),
           enteredUnit,
           reason: input.reason,
           createdById: userId,

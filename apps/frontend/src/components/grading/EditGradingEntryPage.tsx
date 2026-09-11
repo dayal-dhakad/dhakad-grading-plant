@@ -35,7 +35,6 @@ const EditForm = ({ entry }: { entry: GradingEntry }) => {
   const rate = cropId === entry.crop.id ? Number(entry.rate) : Number(selectedCrop?.rate ?? 0);
   const total = useMemo(() => ((Number(quantity) || 0) * rate).toFixed(2), [quantity, rate]);
   const remainder = Number(total) - Number(paidAmount || 0);
-  const canWaiveSmallBalance = remainder > 0 && remainder <= 10;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const parsed = ReviseGradingEntrySchema.safeParse({
@@ -126,16 +125,16 @@ const EditForm = ({ entry }: { entry: GradingEntry }) => {
           }}
         />
       </label>
-      {canWaiveSmallBalance && (
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2">
-          <input
-            type="checkbox"
-            checked={waiveSmallBalance}
-            onChange={(event) => setWaiveSmallBalance(event.target.checked)}
-          />
-          Waive the remaining ₹{remainder.toFixed(2)} and mark this entry settled
-        </label>
-      )}
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2">
+        <input
+          type="checkbox"
+          checked={waiveSmallBalance}
+          onChange={(event) => setWaiveSmallBalance(event.target.checked)}
+        />
+        {remainder > 0
+          ? `Waive the remaining ₹${remainder.toFixed(2)} and mark this entry settled`
+          : 'Waive any remaining balance'}
+      </label>
       <label className="field-label">
         Payment mode
         <select
