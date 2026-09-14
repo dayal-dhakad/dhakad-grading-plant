@@ -3,10 +3,12 @@ import type { CreatePaymentInput } from '@dhakad/shared';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { PaymentListQuery } from './payment.schemas.js';
+import { enqueueCustomerNotifications } from '../notifications/notification.service.js';
 const include = {
   customer: { select: { id: true, name: true, mobile: true } },
   recordedBy: { select: { id: true, name: true } },
   reversedBy: { select: { id: true, name: true } },
+  paymentAccount: { select: { id: true, name: true, upiId: true } },
 } satisfies Prisma.CustomerPaymentInclude;
 const present = (payment: Prisma.CustomerPaymentGetPayload<{ include: typeof include }>) => ({
   id: payment.id,
@@ -15,6 +17,7 @@ const present = (payment: Prisma.CustomerPaymentGetPayload<{ include: typeof inc
   amount: payment.amount.toFixed(2),
   waivedAmount: payment.waivedAmount.toFixed(2),
   paymentMethod: payment.paymentMethod,
+  paymentAccount: payment.paymentAccount,
   status: payment.status,
   recordedBy: payment.recordedBy,
   reversedBy: payment.reversedBy,
@@ -40,6 +43,15 @@ export const createPayment = async (input: CreatePaymentInput, userId: string) =
       });
       if (!customer) throw new AppError(400, 'CUSTOMER_UNAVAILABLE', 'Select an active customer');
       const amount = new Prisma.Decimal(input.amount);
+      const paymentAccount = input.paymentAccountId
+        ? await transaction.paymentAccount.findFirst({
+            where: { id: input.paymentAccountId, isActive: true },
+          })
+        : null;
+      if (input.paymentMethod === 'ONLINE' && !paymentAccount)
+        throw new AppError(400, 'PAYMENT_ACCOUNT_REQUIRED', 'Select an active payment account', [
+          { path: 'paymentAccountId', message: 'Select an active payment account' },
+        ]);
       const balance = await customerBalance(input.customerId, transaction);
       if (balance.lte(0))
         throw new AppError(409, 'NO_OUTSTANDING_DUE', 'This customer has no outstanding due');
@@ -56,6 +68,7 @@ export const createPayment = async (input: CreatePaymentInput, userId: string) =
           amount,
           waivedAmount,
           paymentMethod: input.paymentMethod,
+          paymentAccountId: input.paymentMethod === 'ONLINE' ? paymentAccount!.id : null,
           recordedById: userId,
         },
         include,
@@ -109,6 +122,19 @@ export const createPayment = async (input: CreatePaymentInput, userId: string) =
             createdById: userId,
           },
         });
+      await enqueueCustomerNotifications(transaction, {
+        customer,
+        eventType: 'PAYMENT_RECEIVED',
+        createdById: userId,
+        paymentId: payment.id,
+        variables: {
+          name: customer.name,
+          number: `RCPT-${String(payment.receiptNumber).padStart(6, '0')}`,
+          amount: amount.toFixed(2),
+          balance: Prisma.Decimal.max(0, remainder.minus(waivedAmount)).toFixed(2),
+        },
+        preview: `Payment RCPT-${String(payment.receiptNumber).padStart(6, '0')} of ₹${amount.toFixed(2)} received.`,
+      });
       return present(payment);
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -186,6 +212,21 @@ export const reversePayment = async (id: string, reason: string, userId: string)
             createdById: userId,
           },
         });
+      const customer = await transaction.customer.findUniqueOrThrow({
+        where: { id: payment.customerId },
+      });
+      await enqueueCustomerNotifications(transaction, {
+        customer,
+        eventType: 'PAYMENT_REVERSED',
+        createdById: userId,
+        paymentId: payment.id,
+        variables: {
+          name: customer.name,
+          number: `RCPT-${String(payment.receiptNumber).padStart(6, '0')}`,
+          amount: payment.amount.toFixed(2),
+        },
+        preview: `Payment RCPT-${String(payment.receiptNumber).padStart(6, '0')} of ₹${payment.amount.toFixed(2)} was reversed.`,
+      });
       return present(updated);
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

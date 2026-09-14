@@ -2,9 +2,12 @@
 
 ## Current status
 
-Phases 1 through 11 are implemented and verified. Phase 11 added administrator-managed seed
-catalog configuration and append-only stock in grams, kilograms, and quintals. Phase 12 seed
-billing awaits explicit approval.
+Phases 1 through 13 and Phases 15 through 17 are implemented and verified. Phase 14 MSG91 notification code is
+implemented locally, with live delivery verification explicitly deferred until credentials and
+approved templates are available. Phase 15 added administrator reports and CSV export. Phase 16
+added printable grading, seed-sale, and payment receipts in A4 and 80mm thermal formats. Phase 17
+added API security headers, layered rate limiting, private-response cache controls, malformed request
+handling, early invalid-session rejection, and security regression tests.
 
 ## Product and users
 
@@ -164,7 +167,7 @@ Local PostgreSQL is exposed on port `5433` because port `5432` was already occup
 - Currency/rounding, quantity precision, units, taxes, discounts, due/partial-payment behavior, cancellation/reversal permissions, and numbering formats.
 - Grading supports an immediate payment amount and an outstanding due. The ledger phase will make cross-module balances authoritative.
 - Seed billing supports staff discount overrides and multi-item bills. Returns and taxes remain deferred.
-- Payment, SMS, and WhatsApp providers; online-payment verification/webhook behavior.
+- SMS and WhatsApp providers; automatic online-payment verification/webhook behavior.
 - Receipt paper sizes, printer types, PDF requirements, and offline/PWA expectations.
 - Production hosting, domain, backup retention, and restore objectives.
 

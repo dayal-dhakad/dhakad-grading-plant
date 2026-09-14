@@ -4,6 +4,7 @@ import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 import { useGetStaffListQuery } from '@/services/api/staff-api';
+import { useGetOverviewReportQuery } from '@/services/api/report-api';
 import { TablePagination } from './table/TablePagination';
 
 export const DashboardPage = () => {
@@ -13,8 +14,12 @@ export const DashboardPage = () => {
   const { data: staff } = useGetStaffListQuery({ status: 'active', page: 1 });
   const { data: customers } = useGetCustomersQuery({ status: 'active', page: 1 });
   const { data: entries } = useGetGradingEntriesQuery({ status: 'active', page, pageSize });
-  const visibleDue =
-    entries?.gradingEntries.reduce((sum, entry) => sum + Number(entry.dueAmount), 0) ?? 0;
+  const reportDate = new Date().toISOString().slice(0, 10);
+  const {
+    data: report,
+    isLoading: isReportLoading,
+    isError: isReportError,
+  } = useGetOverviewReportQuery({ from: reportDate, to: reportDate });
   return (
     <div className="mx-auto max-w-7xl">
       <p className="text-sm font-semibold text-brand-700">Admin dashboard</p>
@@ -33,9 +38,17 @@ export const DashboardPage = () => {
           <p className="mt-3 text-3xl font-bold">{entries?.pagination.total ?? '—'}</p>
         </article>
         <article className="card">
-          <p className="card-label">Due in visible entries</p>
-          <p className="mt-3 text-3xl font-bold text-red-700">₹{visibleDue.toFixed(2)}</p>
-          <p className="mt-1 text-xs text-stone-500">Full ledger totals arrive in Phase 9</p>
+          <p className="card-label">Total customer dues</p>
+          <p className="mt-3 text-3xl font-bold text-red-700">
+            {isReportLoading
+              ? '—'
+              : isReportError
+                ? 'Unavailable'
+                : `₹${report?.dues.total ?? '0.00'}`}
+          </p>
+          <p className="mt-1 text-xs text-stone-500">
+            Current balance from the full customer ledger
+          </p>
         </article>
       </section>
       <section className="mt-7">
@@ -61,7 +74,11 @@ export const DashboardPage = () => {
                 <tr key={entry.id}>
                   <td className="table-id">GR-{String(entry.entryNumber).padStart(6, '0')}</td>
                   <td className="p-4">{entry.createdBy.name}</td>
-                  <td className="table-primary">{entry.customer.name}</td>
+                  <td className="table-primary">
+                    <Link className="hover:underline" to={`/customers/${entry.customer.id}`}>
+                      {entry.customer.name}
+                    </Link>
+                  </td>
                   <td className="table-money">₹{entry.calculatedAmount}</td>
                   <td className="p-4">
                     <span className="font-semibold text-emerald-700">₹{entry.paidAmount}</span>

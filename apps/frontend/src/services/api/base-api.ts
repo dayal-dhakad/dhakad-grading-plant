@@ -12,6 +12,8 @@ export const baseApi = createApi({
     'Ledger',
     'SeedProduct',
     'SeedBill',
+    'PaymentAccount',
+    'Notification',
   ],
   baseQuery: fetchBaseQuery({ baseUrl: frontendEnv.VITE_API_BASE_URL, credentials: 'include' }),
   endpoints: () => ({}),

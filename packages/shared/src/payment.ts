@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PaymentMethodSchema } from './grading.js';
+const CollectedPaymentMethodSchema = z.enum(['CASH', 'ONLINE']);
 const amount = z
   .string()
   .regex(
@@ -9,7 +9,8 @@ const amount = z
 export const CreatePaymentSchema = z.strictObject({
   customerId: z.uuid(),
   amount,
-  paymentMethod: PaymentMethodSchema,
+  paymentMethod: CollectedPaymentMethodSchema,
+  paymentAccountId: z.uuid().nullable().optional(),
   waiveSmallBalance: z.boolean().optional().default(false),
 });
 export const PaymentSchema = z.strictObject({
@@ -18,7 +19,8 @@ export const PaymentSchema = z.strictObject({
   customer: z.strictObject({ id: z.uuid(), name: z.string(), mobile: z.string() }),
   amount: z.string(),
   waivedAmount: z.string(),
-  paymentMethod: PaymentMethodSchema,
+  paymentMethod: CollectedPaymentMethodSchema,
+  paymentAccount: z.strictObject({ id: z.uuid(), name: z.string(), upiId: z.string() }).nullable(),
   status: z.enum(['ACTIVE', 'REVERSED']),
   recordedBy: z.strictObject({ id: z.uuid(), name: z.string() }),
   reversedBy: z.strictObject({ id: z.uuid(), name: z.string() }).nullable(),

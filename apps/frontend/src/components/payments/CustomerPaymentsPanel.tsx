@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useCreatePaymentMutation, useGetCustomerLedgerQuery } from '@/services/api/payment-api';
 import { TablePagination } from '../table/TablePagination';
+import { PaymentAccountField } from './PaymentAccountField';
 export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) => {
   const { data: ledger, isLoading, isError, refetch } = useGetCustomerLedgerQuery(customerId);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
+  const [paymentAccountId, setPaymentAccountId] = useState('');
   const [waiveSmallBalance, setWaiveSmallBalance] = useState(false);
   const [message, setMessage] = useState('');
   const [page, setPage] = useState(1);
@@ -18,6 +20,7 @@ export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) =>
         customerId,
         amount,
         paymentMethod,
+        paymentAccountId: paymentMethod === 'ONLINE' ? paymentAccountId : null,
         waiveSmallBalance,
       }).unwrap();
       setAmount('');
@@ -74,6 +77,15 @@ export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) =>
             <option value="ONLINE">Online</option>
           </select>
         </label>
+        {paymentMethod === 'ONLINE' && (
+          <div className="sm:col-span-3">
+            <PaymentAccountField
+              value={paymentAccountId}
+              onChange={setPaymentAccountId}
+              amount={amount}
+            />
+          </div>
+        )}
         <button className="primary-button self-end" disabled={state.isLoading || !ledger}>
           Receive payment
         </button>

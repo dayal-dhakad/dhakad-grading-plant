@@ -50,7 +50,11 @@ export const StaffDetailPage = () => {
             {entries?.gradingEntries.map((entry) => (
               <tr className="border-t" key={entry.id}>
                 <td className="table-id">GR-{String(entry.entryNumber).padStart(6, '0')}</td>
-                <td className="table-primary">{entry.customer.name}</td>
+                <td className="table-primary">
+                  <Link className="hover:underline" to={`/customers/${entry.customer.id}`}>
+                    {entry.customer.name}
+                  </Link>
+                </td>
                 <td className="p-4">{entry.crop.name}</td>
                 <td className="table-money">₹{entry.calculatedAmount}</td>
                 <td className="p-4">

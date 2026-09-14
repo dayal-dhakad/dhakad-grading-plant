@@ -20,6 +20,8 @@ const CustomerForm = ({ customer, onClose }: { customer?: Customer; onClose: () 
   const [name, setName] = useState(customer?.name ?? '');
   const [village, setVillage] = useState(customer?.village ?? '');
   const [address, setAddress] = useState(customer?.address ?? '');
+  const [smsConsent, setSmsConsent] = useState(customer?.smsConsent ?? false);
+  const [whatsappConsent, setWhatsappConsent] = useState(customer?.whatsappConsent ?? false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [message, setMessage] = useState('');
   const [createCustomer, createState] = useCreateCustomerMutation();
@@ -43,7 +45,14 @@ const CustomerForm = ({ customer, onClose }: { customer?: Customer; onClose: () 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setMessage('');
-    const result = CreateCustomerSchema.safeParse({ mobile, name, village, address });
+    const result = CreateCustomerSchema.safeParse({
+      mobile,
+      name,
+      village,
+      address,
+      smsConsent,
+      whatsappConsent,
+    });
     if (!result.success) {
       const next: FormErrors = {};
       for (const issue of result.error.issues) {
@@ -135,6 +144,30 @@ const CustomerForm = ({ customer, onClose }: { customer?: Customer; onClose: () 
             error={errors.name}
             autoComplete="name"
           />
+          <fieldset className="rounded-xl border border-stone-200 p-4">
+            <legend className="px-1 text-sm font-bold">Notification consent</legend>
+            <p className="mb-3 text-xs text-stone-500">
+              Enable only after the customer agrees to receive transaction alerts and reminders.
+            </p>
+            <div className="flex flex-wrap gap-5">
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={smsConsent}
+                  onChange={(e) => setSmsConsent(e.target.checked)}
+                />
+                SMS
+              </label>
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={whatsappConsent}
+                  onChange={(e) => setWhatsappConsent(e.target.checked)}
+                />
+                WhatsApp
+              </label>
+            </div>
+          </fieldset>
           <TextField
             id="customer-village"
             label="Village"
@@ -344,7 +377,7 @@ export const CustomersPage = () => {
                 <div className="min-w-0 leading-tight" role="cell">
                   <Link
                     className="block truncate text-sm font-bold text-brand-800 hover:underline"
-                    to={`/admin/customers/${customer.id}`}
+                    to={`/customers/${customer.id}`}
                   >
                     {customer.name}
                   </Link>

@@ -21,7 +21,12 @@ seedBillingRouter.use(requireAuth);
 seedBillingRouter.get('/', async (req, res, next) => {
   try {
     const q = parse(SeedBillListQuerySchema, req.query);
-    res.json(await listSeedBills(q, req.authUser!.role === 'STAFF' ? req.authUser!.id : undefined));
+    res.json(
+      await listSeedBills(
+        q,
+        req.authUser!.role === 'STAFF' && !q.customerId ? req.authUser!.id : undefined,
+      ),
+    );
   } catch (e) {
     next(e);
   }

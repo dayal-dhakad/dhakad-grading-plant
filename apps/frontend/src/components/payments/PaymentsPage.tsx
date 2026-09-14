@@ -1,8 +1,10 @@
 import { useDeferredValue, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetPaymentsQuery, useReversePaymentMutation } from '@/services/api/payment-api';
 import { CustomerPaymentsPanel } from './CustomerPaymentsPanel';
 import { TablePagination } from '../table/TablePagination';
+import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
 export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
   const [search, setSearch] = useState('');
   const deferred = useDeferredValue(search.trim());
@@ -72,13 +74,13 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
               <th className="p-4">Mode</th>
               <th className="p-4">Recorded by</th>
               <th className="p-4">Status</th>
-              {admin && <th className="p-4">Action</th>}
+              <th className="p-4">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {isLoading ? (
               <tr>
-                <td className="p-5" colSpan={admin ? 7 : 6}>
+                <td className="p-5" colSpan={7}>
                   Loading payments…
                 </td>
               </tr>
@@ -92,11 +94,20 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
                     </span>
                   </td>
                   <td className="table-primary">
-                    {payment.customer.name}
+                    <Link className="hover:underline" to={`/customers/${payment.customer.id}`}>
+                      {payment.customer.name}
+                    </Link>
                     <span className="block text-xs">{payment.customer.mobile}</span>
                   </td>
                   <td className="table-money text-emerald-700">₹{payment.amount}</td>
-                  <td className="p-4">{payment.paymentMethod === 'CASH' ? 'Cash' : 'Online'}</td>
+                  <td className="p-4">
+                    {payment.paymentMethod === 'CASH' ? 'Cash' : 'Online'}
+                    {payment.paymentAccount && (
+                      <span className="block text-xs text-stone-500">
+                        {payment.paymentAccount.name}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-4">{payment.recordedBy.name}</td>
                   <td className="p-4">
                     <span
@@ -105,9 +116,10 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
                       {payment.status === 'ACTIVE' ? 'Active' : 'Reversed'}
                     </span>
                   </td>
-                  {admin && (
-                    <td className="p-4">
-                      {payment.status === 'ACTIVE' && (
+                  <td className="p-4">
+                    <div className="flex gap-3">
+                      <PrintReceiptButton kind="payment" record={payment} />
+                      {admin && payment.status === 'ACTIVE' && (
                         <button
                           className="font-semibold text-red-700 hover:underline"
                           onClick={() => reverseOne(payment.id, payment.customer.id)}
@@ -115,8 +127,8 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
                           Reverse
                         </button>
                       )}
-                    </td>
-                  )}
+                    </div>
+                  </td>
                 </tr>
               ))
             )}

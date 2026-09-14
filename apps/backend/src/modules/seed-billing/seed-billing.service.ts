@@ -9,10 +9,12 @@ import type { CreateSeedBillInput } from '@dhakad/shared';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { SeedBillListQuery } from './seed-billing.schemas.js';
+import { enqueueCustomerNotifications } from '../notifications/notification.service.js';
 
 const include = {
   customer: { select: { id: true, name: true, mobile: true } },
   createdBy: { select: { id: true, name: true } },
+  paymentAccount: { select: { id: true, name: true, upiId: true } },
   items: { include: { product: { select: { id: true, name: true } } } },
 } satisfies Prisma.SeedBillInclude;
 type Full = Prisma.SeedBillGetPayload<{ include: typeof include }>;
@@ -30,6 +32,7 @@ const present = (b: Full) => ({
       : b.netAmount.minus(b.paidAmount).minus(b.waivedAmount).toFixed(2),
   waivedAmount: b.waivedAmount.toFixed(2),
   paymentMethod: b.paymentMethod,
+  paymentAccount: b.paymentAccount,
   status: b.status,
   serviceDate: b.serviceDate.toISOString().slice(0, 10),
   notes: b.notes,
@@ -101,6 +104,13 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
       if (paid.gt(net))
         throw new AppError(400, 'PAYMENT_EXCEEDS_TOTAL', 'Payment cannot exceed bill total');
       const remainder = net.minus(paid);
+      const paymentAccount = input.paymentAccountId
+        ? await tx.paymentAccount.findFirst({
+            where: { id: input.paymentAccountId, isActive: true },
+          })
+        : null;
+      if (paid.gt(0) && input.paymentMethod === 'ONLINE' && !paymentAccount)
+        throw new AppError(400, 'PAYMENT_ACCOUNT_REQUIRED', 'Select an active payment account');
       const waived = input.waiveSmallBalance && remainder.gt(0) ? remainder : new Prisma.Decimal(0);
       const bill = await tx.seedBill.create({
         data: {
@@ -111,6 +121,8 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
           paidAmount: paid,
           waivedAmount: waived,
           paymentMethod: input.paymentMethod,
+          paymentAccountId:
+            paid.gt(0) && input.paymentMethod === 'ONLINE' ? paymentAccount!.id : null,
           serviceDate: new Date(`${input.serviceDate}T00:00:00.000Z`),
           notes: input.notes ?? null,
           createdById: userId,
@@ -178,6 +190,19 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
             createdById: userId,
           },
         });
+      await enqueueCustomerNotifications(tx, {
+        customer,
+        eventType: 'SEED_BILL_CREATED',
+        createdById: userId,
+        seedBillId: bill.id,
+        variables: {
+          name: customer.name,
+          number: `SEED-${String(bill.billNumber).padStart(6, '0')}`,
+          amount: net.toFixed(2),
+          paid: paid.toFixed(2),
+        },
+        preview: `Seed bill SEED-${String(bill.billNumber).padStart(6, '0')} recorded. Amount ₹${net.toFixed(2)}, paid ₹${paid.toFixed(2)}.`,
+      });
       return present(await tx.seedBill.findUniqueOrThrow({ where: { id: bill.id }, include }));
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -189,6 +214,7 @@ export const listSeedBills = async (q: SeedBillListQuery, staffId?: string) => {
     ...(q.status === 'all'
       ? {}
       : { status: q.status === 'active' ? SeedBillStatus.ACTIVE : SeedBillStatus.CANCELLED }),
+    ...(q.customerId ? { customerId: q.customerId } : {}),
     ...(q.search
       ? {
           OR: [
@@ -256,6 +282,18 @@ export const cancelSeedBill = async (
             createdById: userId,
           },
         });
+      const customer = await tx.customer.findUniqueOrThrow({ where: { id: bill.customerId } });
+      await enqueueCustomerNotifications(tx, {
+        customer,
+        eventType: 'SEED_BILL_CANCELLED',
+        createdById: userId,
+        seedBillId: bill.id,
+        variables: {
+          name: customer.name,
+          number: `SEED-${String(bill.billNumber).padStart(6, '0')}`,
+        },
+        preview: `Seed bill SEED-${String(bill.billNumber).padStart(6, '0')} was cancelled.`,
+      });
       return present(
         await tx.seedBill.update({
           where: { id },

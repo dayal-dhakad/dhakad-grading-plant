@@ -27,6 +27,15 @@ describe('payment contracts', () => {
       }).success,
     ).toBe(false);
   });
+  it('rejects due as a received-payment method', () => {
+    expect(
+      CreatePaymentSchema.safeParse({
+        customerId: '4ea4f8dc-9f72-4fb3-99a4-fdfc40ced5ea',
+        amount: '50',
+        paymentMethod: 'DUE',
+      }).success,
+    ).toBe(false);
+  });
   it('accepts an explicit small-balance waiver choice', () => {
     expect(
       CreatePaymentSchema.parse({

@@ -35,6 +35,8 @@ export const login = async (input: LoginInput) => {
 
 export const authenticate = async (token: string | undefined): Promise<AuthUser> => {
   if (!token) throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required');
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token))
+    throw new AppError(401, 'SESSION_INVALID', 'Session is invalid or expired');
   const now = new Date();
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },

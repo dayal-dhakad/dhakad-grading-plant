@@ -133,3 +133,69 @@
       linear-gradient(155deg, #fffdf7 20%, #fff9e8 72%, #fdf0bc 120%);
   }
 }
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  html,
+  body {
+    width: 210mm;
+    min-width: 0 !important;
+    background: white !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .print-receipt,
+  .print-receipt * {
+    visibility: visible !important;
+  }
+  .print-receipt {
+    position: absolute;
+    inset: 0 auto auto 0;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .draft-receipt {
+    width: 190mm !important;
+    max-width: 190mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    border: 1px solid #444 !important;
+    border-radius: 0 !important;
+    background: white !important;
+  }
+  .draft-receipt [class*='min-w-'] {
+    min-width: 0 !important;
+  }
+  .draft-receipt .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .receipt-overlay {
+    position: static !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+.receipt-a4 {
+  width: min(100%, 210mm);
+  min-height: 260mm;
+  margin-inline: auto;
+  padding: 16mm;
+}
+.receipt-thermal {
+  width: 80mm;
+  min-height: 120mm;
+  margin-inline: auto;
+  padding: 6mm;
+}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
+import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
 export const AdminEntriesPage = () => {
   const [tab, setTab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
@@ -81,7 +82,9 @@ export const AdminEntriesPage = () => {
                       </td>
                       <td className="p-4">{entry.createdBy.name}</td>
                       <td className="table-primary">
-                        {entry.customer.name}
+                        <Link className="hover:underline" to={`/customers/${entry.customer.id}`}>
+                          {entry.customer.name}
+                        </Link>
                         <span className="block text-xs text-stone-500">
                           {entry.customer.mobile}
                         </span>
@@ -97,7 +100,18 @@ export const AdminEntriesPage = () => {
                         ₹{entry.paidAmount}
                       </td>
                       <td className="table-due">₹{entry.dueAmount}</td>
-                      <td className="p-4">{entry.paymentMethod === 'CASH' ? 'Cash' : 'Online'}</td>
+                      <td className="p-4">
+                        {entry.paymentMethod === 'CASH'
+                          ? 'Cash'
+                          : entry.paymentMethod === 'ONLINE'
+                            ? 'Online'
+                            : 'Due'}
+                        {entry.paymentAccount && (
+                          <span className="block text-xs text-stone-500">
+                            {entry.paymentAccount.name}
+                          </span>
+                        )}
+                      </td>
                       <td className="p-4">
                         <span
                           className={`status-badge ${entry.status === 'ACTIVE' ? 'status-badge-positive' : 'status-badge-warning'}`}
@@ -106,12 +120,15 @@ export const AdminEntriesPage = () => {
                         </span>
                       </td>
                       <td className="p-4">
-                        <Link
-                          className="font-semibold text-brand-800 hover:underline"
-                          to={`/admin/entries/${entry.id}/history`}
-                        >
-                          View
-                        </Link>
+                        <div className="flex gap-3">
+                          <PrintReceiptButton kind="grading" record={entry} />
+                          <Link
+                            className="font-semibold text-brand-800 hover:underline"
+                            to={`/admin/entries/${entry.id}/history`}
+                          >
+                            History
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))

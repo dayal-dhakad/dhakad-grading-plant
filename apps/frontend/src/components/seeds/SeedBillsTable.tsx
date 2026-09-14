@@ -1,10 +1,23 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCancelSeedBillMutation, useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
 import { TablePagination } from '../table/TablePagination';
-export const SeedBillsTable = () => {
+import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
+export const SeedBillsTable = ({
+  customerId,
+  readOnly = false,
+}: {
+  customerId?: string;
+  readOnly?: boolean;
+}) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const { data, isLoading } = useGetSeedBillsQuery({ status: 'all', page, pageSize });
+  const { data, isLoading } = useGetSeedBillsQuery({
+    status: 'all',
+    ...(customerId ? { customerId } : {}),
+    page,
+    pageSize,
+  });
   const [cancel] = useCancelSeedBillMutation();
   const cancelOne = (id: string) => {
     const reason = window.prompt('Reason for cancelling this seed bill');
@@ -39,12 +52,21 @@ export const SeedBillsTable = () => {
                   <span className="block text-xs text-stone-500">{b.serviceDate}</span>
                 </td>
                 <td className="table-primary">
-                  {b.customer.name}
+                  <Link className="hover:underline" to={`/customers/${b.customer.id}`}>
+                    {b.customer.name}
+                  </Link>
                   <span className="block text-xs text-stone-500">{b.customer.mobile}</span>
                 </td>
                 <td>{b.items.map((i) => i.product.name).join(', ')}</td>
                 <td className="table-money">₹{b.netAmount}</td>
-                <td className="font-bold text-emerald-700">₹{b.paidAmount}</td>
+                <td className="font-bold text-emerald-700">
+                  ₹{b.paidAmount}
+                  {b.paymentAccount && (
+                    <span className="block text-xs font-normal text-stone-500">
+                      Online · {b.paymentAccount.name}
+                    </span>
+                  )}
+                </td>
                 <td className="table-due">₹{b.dueAmount}</td>
                 <td>{b.createdBy.name}</td>
                 <td>
@@ -55,14 +77,17 @@ export const SeedBillsTable = () => {
                   </span>
                 </td>
                 <td>
-                  {b.status === 'ACTIVE' && (
-                    <button
-                      className="font-semibold text-red-700 hover:underline"
-                      onClick={() => cancelOne(b.id)}
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <div className="flex gap-3">
+                    <PrintReceiptButton kind="seed" record={b} />
+                    {!readOnly && b.status === 'ACTIVE' && (
+                      <button
+                        className="font-semibold text-red-700 hover:underline"
+                        onClick={() => cancelOne(b.id)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))

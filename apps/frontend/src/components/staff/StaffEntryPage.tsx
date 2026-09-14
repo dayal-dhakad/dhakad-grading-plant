@@ -17,6 +17,7 @@ import {
   useGetGradingReferencesQuery,
 } from '@/services/api/grading-api';
 import { SeedSalePage } from '../seeds/SeedSalePage';
+import { PaymentAccountField } from '../payments/PaymentAccountField';
 
 const today = () => {
   const value = new Date();
@@ -64,7 +65,8 @@ export const StaffEntryPage = () => {
   const [rate, setRate] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [paymentEdited, setPaymentEdited] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE' | 'DUE'>('CASH');
+  const [paymentAccountId, setPaymentAccountId] = useState('');
   const [waiveSmallBalance, setWaiveSmallBalance] = useState(false);
   const [serviceDate, setServiceDate] = useState(today());
   const [notes, setNotes] = useState('');
@@ -124,6 +126,7 @@ export const StaffEntryPage = () => {
     setPaidAmount('');
     setPaymentEdited(false);
     setPaymentMethod('CASH');
+    setPaymentAccountId('');
     setWaiveSmallBalance(false);
     setServiceDate(today());
     setNotes('');
@@ -170,6 +173,7 @@ export const StaffEntryPage = () => {
       paidAmount: displayedPaid,
       waiveSmallBalance,
       paymentMethod,
+      paymentAccountId: paymentMethod === 'ONLINE' ? paymentAccountId : null,
       serviceDate,
       notes: notes || undefined,
     });
@@ -213,8 +217,13 @@ export const StaffEntryPage = () => {
       {tab === 'seeds' ? (
         <SeedSalePage />
       ) : pendingEntry && customer ? (
-        <section className="card mt-4 overflow-hidden p-0">
-          <div className="border-b border-stone-200 bg-brand-900 px-5 py-4 text-white">
+        <section className="draft-receipt print-receipt card mt-4 overflow-hidden p-0">
+          <div className="print-only hidden border-b-2 border-stone-900 p-5 text-center">
+            <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
+            <p className="mt-1 font-bold">Grading receipt</p>
+            <p className="mt-1 text-xs">Draft · Not saved yet</p>
+          </div>
+          <div className="no-print border-b border-stone-200 bg-brand-900 px-5 py-4 text-white">
             <p className="text-xs font-bold uppercase tracking-widest text-brand-200">
               Receipt preview
             </p>
@@ -257,7 +266,9 @@ export const StaffEntryPage = () => {
             </div>
             <div>
               <p className="card-label">Payment mode</p>
-              <p className="mt-1 font-bold">{paymentMethod === 'CASH' ? 'Cash' : 'Online'}</p>
+              <p className="mt-1 font-bold">
+                {paymentMethod === 'CASH' ? 'Cash' : paymentMethod === 'ONLINE' ? 'Online' : 'Due'}
+              </p>
             </div>
             {notes && (
               <div className="sm:col-span-2 lg:col-span-3">
@@ -293,13 +304,19 @@ export const StaffEntryPage = () => {
               ₹{displayDecimal(remainingAmount)} will be recorded as a small-balance waiver.
             </p>
           )}
-          <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
+          <div className="print-only hidden border-t border-dashed border-stone-500 p-5 text-center text-xs">
+            Please retain this receipt for your records.
+          </div>
+          <div className="no-print flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
             <button
               type="button"
               className="secondary-button"
               onClick={() => setPendingEntry(undefined)}
             >
               ← Back and edit
+            </button>
+            <button type="button" className="secondary-button" onClick={() => window.print()}>
+              Print receipt
             </button>
             <button
               type="button"
@@ -310,7 +327,9 @@ export const StaffEntryPage = () => {
               {state.isLoading ? 'Submitting…' : 'Confirm and create entry'}
             </button>
           </div>
-          {message && <p className="px-5 pb-5 text-sm font-semibold text-red-700">{message}</p>}
+          {message && (
+            <p className="no-print px-5 pb-5 text-sm font-semibold text-red-700">{message}</p>
+          )}
         </section>
       ) : (
         <form
@@ -574,9 +593,7 @@ export const StaffEntryPage = () => {
                 </span>
               )}
             </label>
-            <label
-              className="order-8 flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2"
-            >
+            <label className="order-8 flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 sm:col-span-2">
               <input
                 type="checkbox"
                 checked={waiveSmallBalance}
@@ -588,8 +605,8 @@ export const StaffEntryPage = () => {
             </label>
             <fieldset className="order-8">
               <legend className="field-label">Payment mode *</legend>
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                {(['CASH', 'ONLINE'] as const).map((item) => (
+              <div className="mt-1 grid grid-cols-3 gap-2">
+                {(['CASH', 'ONLINE', 'DUE'] as const).map((item) => (
                   <label
                     className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold ${paymentMethod === item ? 'border-brand-700 bg-brand-50 text-brand-800' : ''}`}
                     key={item}
@@ -598,13 +615,31 @@ export const StaffEntryPage = () => {
                       className="sr-only"
                       type="radio"
                       checked={paymentMethod === item}
-                      onChange={() => setPaymentMethod(item)}
+                      onChange={() => {
+                        setPaymentMethod(item);
+                        if (item === 'DUE') {
+                          setPaidAmount('0.00');
+                          setPaymentEdited(true);
+                          setWaiveSmallBalance(false);
+                          setPaymentAccountId('');
+                        }
+                      }}
                     />
-                    {item === 'CASH' ? 'Cash' : 'Online'}
+                    {item === 'CASH' ? 'Cash' : item === 'ONLINE' ? 'Online' : 'Due'}
                   </label>
                 ))}
               </div>
             </fieldset>
+            {paymentMethod === 'ONLINE' && (
+              <div className="order-9 sm:col-span-2">
+                <PaymentAccountField
+                  value={paymentAccountId}
+                  onChange={setPaymentAccountId}
+                  amount={displayedPaid}
+                  reference={customer?.mobile}
+                />
+              </div>
+            )}
             <label className="field-label order-4">
               Service date *
               <input

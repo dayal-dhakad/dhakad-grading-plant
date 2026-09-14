@@ -15,12 +15,14 @@ enum Role {
 enum PaymentMethod {
   CASH
   ONLINE
+  DUE
 }
 
 enum GradingStatus {
   ACTIVE
   CANCELLED
 }
+
 enum PaymentStatus {
   ACTIVE
   REVERSED
@@ -67,25 +69,51 @@ enum LedgerEntryType {
   SEED_SALE_REVERSAL
 }
 
+enum NotificationChannel {
+  SMS
+  WHATSAPP
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum NotificationEventType {
+  GRADING_CREATED
+  GRADING_CANCELLED
+  SEED_BILL_CREATED
+  SEED_BILL_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_REVERSED
+  DUE_REMINDER
+}
+
 model User {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  mobile       String    @unique @db.VarChar(10)
-  name         String    @db.VarChar(120)
-  passwordHash String    @map("password_hash") @db.VarChar(255)
-  role         Role
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions     Session[]
-  gradingEntriesCreated   GradingEntry[] @relation("GradingCreatedBy")
-  gradingEntriesCancelled GradingEntry[] @relation("GradingCancelledBy")
-  gradingRevisions         GradingEntryRevision[]
-  paymentsRecorded         CustomerPayment[] @relation("PaymentRecordedBy")
-  paymentsReversed         CustomerPayment[] @relation("PaymentReversedBy")
-  ledgerEntriesCreated     CustomerLedgerEntry[]
-  seedStockMovements       SeedStockMovement[]
-  seedBillsCreated         SeedBill[] @relation("SeedBillCreatedBy")
-  seedBillsCancelled       SeedBill[] @relation("SeedBillCancelledBy")
+  id                      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mobile                  String                 @unique @db.VarChar(10)
+  name                    String                 @db.VarChar(120)
+  passwordHash            String                 @map("password_hash") @db.VarChar(255)
+  role                    Role
+  isActive                Boolean                @default(true) @map("is_active")
+  createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions                Session[]
+  gradingEntriesCreated   GradingEntry[]         @relation("GradingCreatedBy")
+  gradingEntriesCancelled GradingEntry[]         @relation("GradingCancelledBy")
+  gradingRevisions        GradingEntryRevision[]
+  paymentsRecorded        CustomerPayment[]      @relation("PaymentRecordedBy")
+  paymentsReversed        CustomerPayment[]      @relation("PaymentReversedBy")
+  ledgerEntriesCreated    CustomerLedgerEntry[]
+  seedStockMovements      SeedStockMovement[]
+  seedBillsCreated        SeedBill[]             @relation("SeedBillCreatedBy")
+  seedBillsCancelled      SeedBill[]             @relation("SeedBillCancelledBy")
+  paymentAccountsCreated  PaymentAccount[]
+  notificationsCreated    Notification[]
 
   @@index([isActive])
   @@map("users")
@@ -107,18 +135,21 @@ model Session {
 }
 
 model Customer {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  mobile    String   @unique @db.VarChar(10)
-  name      String   @db.VarChar(120)
-  address   String?  @db.VarChar(300)
-  village   String   @db.VarChar(120)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  gradingEntries GradingEntry[]
-  payments       CustomerPayment[]
-  ledgerEntries  CustomerLedgerEntry[]
-  seedBills      SeedBill[]
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mobile          String                @unique @db.VarChar(10)
+  name            String                @db.VarChar(120)
+  address         String?               @db.VarChar(300)
+  village         String                @db.VarChar(120)
+  isActive        Boolean               @default(true) @map("is_active")
+  smsConsent      Boolean               @default(false) @map("sms_consent")
+  whatsappConsent Boolean               @default(false) @map("whatsapp_consent")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  gradingEntries  GradingEntry[]
+  payments        CustomerPayment[]
+  ledgerEntries   CustomerLedgerEntry[]
+  seedBills       SeedBill[]
+  notifications   Notification[]
 
   @@index([name])
   @@index([village])
@@ -126,16 +157,69 @@ model Customer {
   @@map("customers")
 }
 
+model Notification {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId        String                @map("customer_id") @db.Uuid
+  customer          Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  channel           NotificationChannel
+  eventType         NotificationEventType @map("event_type")
+  status            NotificationStatus    @default(PENDING)
+  recipient         String                @db.VarChar(13)
+  templateKey       String                @map("template_key") @db.VarChar(100)
+  variables         Json                  @db.JsonB
+  messagePreview    String                @map("message_preview") @db.VarChar(500)
+  gradingEntryId    String?               @map("grading_entry_id") @db.Uuid
+  seedBillId        String?               @map("seed_bill_id") @db.Uuid
+  paymentId         String?               @map("payment_id") @db.Uuid
+  createdById       String                @map("created_by_id") @db.Uuid
+  createdBy         User                  @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  providerMessageId String?               @map("provider_message_id") @db.VarChar(150)
+  attempts          Int                   @default(0)
+  lastError         String?               @map("last_error") @db.VarChar(500)
+  sentAt            DateTime?             @map("sent_at") @db.Timestamptz(3)
+  deliveredAt       DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  readAt            DateTime?             @map("read_at") @db.Timestamptz(3)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([gradingEntryId])
+  @@index([seedBillId])
+  @@index([paymentId])
+  @@map("notifications")
+}
+
+model PaymentAccount {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String            @db.VarChar(100)
+  accountHolderName String            @map("account_holder_name") @db.VarChar(120)
+  upiId             String            @unique @map("upi_id") @db.VarChar(120)
+  isDefault         Boolean           @default(false) @map("is_default")
+  isActive          Boolean           @default(true) @map("is_active")
+  createdById       String            @map("created_by_id") @db.Uuid
+  createdBy         User              @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  gradingEntries    GradingEntry[]
+  customerPayments  CustomerPayment[]
+  seedBills         SeedBill[]
+
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("payment_accounts")
+}
+
 model Unit {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code          String   @unique @db.VarChar(30)
-  name          String   @unique @db.VarChar(80)
-  symbol        String   @db.VarChar(20)
-  decimalPlaces Int      @default(2) @map("decimal_places") @db.SmallInt
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  cropRates     Crop[]
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code           String         @unique @db.VarChar(30)
+  name           String         @unique @db.VarChar(80)
+  symbol         String         @db.VarChar(20)
+  decimalPlaces  Int            @default(2) @map("decimal_places") @db.SmallInt
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cropRates      Crop[]
   gradingEntries GradingEntry[]
 
   @@index([isActive])
@@ -143,15 +227,15 @@ model Unit {
 }
 
 model Crop {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code               String   @unique @db.VarChar(30)
-  name               String   @unique @db.VarChar(100)
-  cleaningRate       Decimal  @map("cleaning_rate") @db.Decimal(12, 2)
-  cleaningRateUnitId String   @map("cleaning_rate_unit_id") @db.Uuid
-  cleaningRateUnit   Unit     @relation(fields: [cleaningRateUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  isActive           Boolean  @default(true) @map("is_active")
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String         @unique @db.VarChar(30)
+  name               String         @unique @db.VarChar(100)
+  cleaningRate       Decimal        @map("cleaning_rate") @db.Decimal(12, 2)
+  cleaningRateUnitId String         @map("cleaning_rate_unit_id") @db.Uuid
+  cleaningRateUnit   Unit           @relation(fields: [cleaningRateUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  isActive           Boolean        @default(true) @map("is_active")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   gradingEntries     GradingEntry[]
 
   @@index([isActive])
@@ -160,31 +244,33 @@ model Crop {
 }
 
 model GradingEntry {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  entryNumber      Int            @unique @default(autoincrement()) @map("entry_number")
-  customerId       String         @map("customer_id") @db.Uuid
-  customer         Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cropId           String         @map("crop_id") @db.Uuid
-  crop             Crop           @relation(fields: [cropId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  unitId           String         @map("unit_id") @db.Uuid
-  unit             Unit           @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  quantity         Decimal        @db.Decimal(12, 2)
-  rate             Decimal        @db.Decimal(12, 2)
-  calculatedAmount Decimal        @map("calculated_amount") @db.Decimal(12, 2)
-  paidAmount       Decimal        @map("paid_amount") @db.Decimal(12, 2)
-  waivedAmount     Decimal        @default(0) @map("waived_amount") @db.Decimal(12, 2)
-  paymentMethod    PaymentMethod  @map("payment_method")
-  serviceDate      DateTime       @map("service_date") @db.Date
-  notes            String?        @db.VarChar(500)
-  status           GradingStatus  @default(ACTIVE)
-  createdById      String         @map("created_by_id") @db.Uuid
-  createdBy        User           @relation("GradingCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cancelledAt      DateTime?      @map("cancelled_at") @db.Timestamptz(3)
-  cancelledById    String?        @map("cancelled_by_id") @db.Uuid
-  cancelledBy      User?          @relation("GradingCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cancellationReason String?      @map("cancellation_reason") @db.VarChar(300)
-  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  revisions        GradingEntryRevision[]
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entryNumber        Int                    @unique @default(autoincrement()) @map("entry_number")
+  customerId         String                 @map("customer_id") @db.Uuid
+  customer           Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cropId             String                 @map("crop_id") @db.Uuid
+  crop               Crop                   @relation(fields: [cropId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  unitId             String                 @map("unit_id") @db.Uuid
+  unit               Unit                   @relation(fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  quantity           Decimal                @db.Decimal(12, 2)
+  rate               Decimal                @db.Decimal(12, 2)
+  calculatedAmount   Decimal                @map("calculated_amount") @db.Decimal(12, 2)
+  paidAmount         Decimal                @map("paid_amount") @db.Decimal(12, 2)
+  waivedAmount       Decimal                @default(0) @map("waived_amount") @db.Decimal(12, 2)
+  paymentMethod      PaymentMethod          @map("payment_method")
+  paymentAccountId   String?                @map("payment_account_id") @db.Uuid
+  paymentAccount     PaymentAccount?        @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  serviceDate        DateTime               @map("service_date") @db.Date
+  notes              String?                @db.VarChar(500)
+  status             GradingStatus          @default(ACTIVE)
+  createdById        String                 @map("created_by_id") @db.Uuid
+  createdBy          User                   @relation("GradingCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cancelledAt        DateTime?              @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById      String?                @map("cancelled_by_id") @db.Uuid
+  cancelledBy        User?                  @relation("GradingCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cancellationReason String?                @map("cancellation_reason") @db.VarChar(300)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  revisions          GradingEntryRevision[]
   paymentAllocations PaymentAllocation[]
   ledgerEntries      CustomerLedgerEntry[]
 
@@ -192,63 +278,70 @@ model GradingEntry {
   @@index([cropId])
   @@index([serviceDate])
   @@index([status])
+  @@index([paymentAccountId])
   @@map("grading_entries")
 }
 
 model CustomerPayment {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  receiptNumber  Int           @unique @default(autoincrement()) @map("receipt_number")
-  customerId     String        @map("customer_id") @db.Uuid
-  customer       Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  amount         Decimal       @db.Decimal(12, 2)
-  waivedAmount   Decimal       @default(0) @map("waived_amount") @db.Decimal(12, 2)
-  paymentMethod  PaymentMethod @map("payment_method")
-  status         PaymentStatus @default(ACTIVE)
-  recordedById   String        @map("recorded_by_id") @db.Uuid
-  recordedBy     User          @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  reversedAt     DateTime?     @map("reversed_at") @db.Timestamptz(3)
-  reversedById   String?       @map("reversed_by_id") @db.Uuid
-  reversedBy     User?         @relation("PaymentReversedBy", fields: [reversedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  reversalReason String?       @map("reversal_reason") @db.VarChar(300)
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  allocations    PaymentAllocation[]
-  ledgerEntries  CustomerLedgerEntry[]
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  receiptNumber    Int                   @unique @default(autoincrement()) @map("receipt_number")
+  customerId       String                @map("customer_id") @db.Uuid
+  customer         Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  amount           Decimal               @db.Decimal(12, 2)
+  waivedAmount     Decimal               @default(0) @map("waived_amount") @db.Decimal(12, 2)
+  paymentMethod    PaymentMethod         @map("payment_method")
+  paymentAccountId String?               @map("payment_account_id") @db.Uuid
+  paymentAccount   PaymentAccount?       @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  status           PaymentStatus         @default(ACTIVE)
+  recordedById     String                @map("recorded_by_id") @db.Uuid
+  recordedBy       User                  @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reversedAt       DateTime?             @map("reversed_at") @db.Timestamptz(3)
+  reversedById     String?               @map("reversed_by_id") @db.Uuid
+  reversedBy       User?                 @relation("PaymentReversedBy", fields: [reversedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reversalReason   String?               @map("reversal_reason") @db.VarChar(300)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  allocations      PaymentAllocation[]
+  ledgerEntries    CustomerLedgerEntry[]
+
   @@index([customerId, createdAt])
   @@index([recordedById])
   @@index([status])
+  @@index([paymentAccountId])
   @@map("customer_payments")
 }
 
 model PaymentAllocation {
-  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  paymentId      String         @map("payment_id") @db.Uuid
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentId      String          @map("payment_id") @db.Uuid
   payment        CustomerPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  gradingEntryId String         @map("grading_entry_id") @db.Uuid
-  gradingEntry   GradingEntry   @relation(fields: [gradingEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  amount         Decimal        @db.Decimal(12, 2)
-  waivedAmount   Decimal        @default(0) @map("waived_amount") @db.Decimal(12, 2)
-  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  gradingEntryId String          @map("grading_entry_id") @db.Uuid
+  gradingEntry   GradingEntry    @relation(fields: [gradingEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  amount         Decimal         @db.Decimal(12, 2)
+  waivedAmount   Decimal         @default(0) @map("waived_amount") @db.Decimal(12, 2)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
   @@unique([paymentId, gradingEntryId])
   @@index([gradingEntryId])
   @@map("payment_allocations")
 }
 
 model CustomerLedgerEntry {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  customerId     String          @map("customer_id") @db.Uuid
-  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  entryType      LedgerEntryType @map("entry_type")
-  amount         Decimal         @db.Decimal(12, 2)
-  gradingEntryId String?         @map("grading_entry_id") @db.Uuid
-  gradingEntry   GradingEntry?   @relation(fields: [gradingEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  paymentId      String?         @map("payment_id") @db.Uuid
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId     String           @map("customer_id") @db.Uuid
+  customer       Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  entryType      LedgerEntryType  @map("entry_type")
+  amount         Decimal          @db.Decimal(12, 2)
+  gradingEntryId String?          @map("grading_entry_id") @db.Uuid
+  gradingEntry   GradingEntry?    @relation(fields: [gradingEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  paymentId      String?          @map("payment_id") @db.Uuid
   payment        CustomerPayment? @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  seedBillId     String?         @map("seed_bill_id") @db.Uuid
-  seedBill       SeedBill?       @relation(fields: [seedBillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  description    String          @db.VarChar(300)
-  createdById    String          @map("created_by_id") @db.Uuid
-  createdBy      User            @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  seedBillId     String?          @map("seed_bill_id") @db.Uuid
+  seedBill       SeedBill?        @relation(fields: [seedBillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  description    String           @db.VarChar(300)
+  createdById    String           @map("created_by_id") @db.Uuid
+  createdBy      User             @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
   @@index([customerId, createdAt])
   @@index([gradingEntryId])
   @@index([paymentId])
@@ -287,21 +380,21 @@ model ProductCategory {
 }
 
 model Product {
-  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code       String?          @unique @db.VarChar(50)
-  name       String           @unique @db.VarChar(120)
-  categoryId String           @map("category_id") @db.Uuid
-  category   ProductCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  isActive   Boolean          @default(true) @map("is_active")
-  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
-  variants   ProductVariant[]
-  sellingRatePerKg Decimal          @default(0) @map("selling_rate_per_kg") @db.Decimal(12, 2)
-  discountType    SeedDiscountType @default(NONE) @map("discount_type")
-  discountValue   Decimal          @default(0) @map("discount_value") @db.Decimal(12, 2)
-  lowStockGrams   BigInt           @default(0) @map("low_stock_grams")
-  stockMovements  SeedStockMovement[]
-  seedBillItems   SeedBillItem[]
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String?             @unique @db.VarChar(50)
+  name             String              @unique @db.VarChar(120)
+  categoryId       String              @map("category_id") @db.Uuid
+  category         ProductCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  isActive         Boolean             @default(true) @map("is_active")
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  variants         ProductVariant[]
+  sellingRatePerKg Decimal             @default(0) @map("selling_rate_per_kg") @db.Decimal(12, 2)
+  discountType     SeedDiscountType    @default(NONE) @map("discount_type")
+  discountValue    Decimal             @default(0) @map("discount_value") @db.Decimal(12, 2)
+  lowStockGrams    BigInt              @default(0) @map("low_stock_grams")
+  stockMovements   SeedStockMovement[]
+  seedBillItems    SeedBillItem[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -309,19 +402,19 @@ model Product {
 }
 
 model SeedStockMovement {
-  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId      String                @map("product_id") @db.Uuid
-  product        Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  movementType   SeedStockMovementType @map("movement_type")
-  quantityGrams  BigInt                @map("quantity_grams")
-  enteredQuantity Decimal              @map("entered_quantity") @db.Decimal(15, 5)
-  enteredUnit    SeedQuantityUnit      @map("entered_unit")
-  reason         String                @db.VarChar(300)
-  createdById    String                @map("created_by_id") @db.Uuid
-  createdBy      User                  @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  seedBillItemId String?                @map("seed_bill_item_id") @db.Uuid
-  seedBillItem   SeedBillItem?          @relation(fields: [seedBillItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId       String                @map("product_id") @db.Uuid
+  product         Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  movementType    SeedStockMovementType @map("movement_type")
+  quantityGrams   BigInt                @map("quantity_grams")
+  enteredQuantity Decimal               @map("entered_quantity") @db.Decimal(15, 5)
+  enteredUnit     SeedQuantityUnit      @map("entered_unit")
+  reason          String                @db.VarChar(300)
+  createdById     String                @map("created_by_id") @db.Uuid
+  createdBy       User                  @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  seedBillItemId  String?               @map("seed_bill_item_id") @db.Uuid
+  seedBillItem    SeedBillItem?         @relation(fields: [seedBillItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([productId, createdAt])
   @@index([createdById])
@@ -330,50 +423,55 @@ model SeedStockMovement {
 }
 
 model SeedBill {
-  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  billNumber         Int            @unique @default(autoincrement()) @map("bill_number")
-  customerId         String         @map("customer_id") @db.Uuid
-  customer           Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  grossAmount        Decimal        @map("gross_amount") @db.Decimal(12, 2)
-  discountAmount     Decimal        @map("discount_amount") @db.Decimal(12, 2)
-  netAmount          Decimal        @map("net_amount") @db.Decimal(12, 2)
-  paidAmount         Decimal        @map("paid_amount") @db.Decimal(12, 2)
-  waivedAmount       Decimal        @default(0) @map("waived_amount") @db.Decimal(12, 2)
-  paymentMethod      PaymentMethod  @map("payment_method")
-  status             SeedBillStatus @default(ACTIVE)
-  serviceDate        DateTime       @map("service_date") @db.Date
-  notes              String?        @db.VarChar(500)
-  createdById        String         @map("created_by_id") @db.Uuid
-  createdBy          User           @relation("SeedBillCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cancelledAt        DateTime?      @map("cancelled_at") @db.Timestamptz(3)
-  cancelledById      String?        @map("cancelled_by_id") @db.Uuid
-  cancelledBy        User?          @relation("SeedBillCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cancellationReason String?        @map("cancellation_reason") @db.VarChar(300)
-  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  billNumber         Int                   @unique @default(autoincrement()) @map("bill_number")
+  customerId         String                @map("customer_id") @db.Uuid
+  customer           Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  grossAmount        Decimal               @map("gross_amount") @db.Decimal(12, 2)
+  discountAmount     Decimal               @map("discount_amount") @db.Decimal(12, 2)
+  netAmount          Decimal               @map("net_amount") @db.Decimal(12, 2)
+  paidAmount         Decimal               @map("paid_amount") @db.Decimal(12, 2)
+  waivedAmount       Decimal               @default(0) @map("waived_amount") @db.Decimal(12, 2)
+  paymentMethod      PaymentMethod         @map("payment_method")
+  paymentAccountId   String?               @map("payment_account_id") @db.Uuid
+  paymentAccount     PaymentAccount?       @relation(fields: [paymentAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  status             SeedBillStatus        @default(ACTIVE)
+  serviceDate        DateTime              @map("service_date") @db.Date
+  notes              String?               @db.VarChar(500)
+  createdById        String                @map("created_by_id") @db.Uuid
+  createdBy          User                  @relation("SeedBillCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cancelledAt        DateTime?             @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById      String?               @map("cancelled_by_id") @db.Uuid
+  cancelledBy        User?                 @relation("SeedBillCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cancellationReason String?               @map("cancellation_reason") @db.VarChar(300)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   items              SeedBillItem[]
   ledgerEntries      CustomerLedgerEntry[]
+
   @@index([customerId, serviceDate])
   @@index([createdById])
   @@index([status])
+  @@index([paymentAccountId])
   @@map("seed_bills")
 }
 
 model SeedBillItem {
-  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seedBillId         String           @map("seed_bill_id") @db.Uuid
-  seedBill           SeedBill         @relation(fields: [seedBillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  productId          String           @map("product_id") @db.Uuid
-  product            Product          @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  enteredQuantity    Decimal          @map("entered_quantity") @db.Decimal(15, 5)
-  enteredUnit        SeedQuantityUnit @map("entered_unit")
-  quantityGrams      BigInt           @map("quantity_grams")
-  ratePerKg          Decimal          @map("rate_per_kg") @db.Decimal(12, 2)
-  discountType       SeedDiscountType @map("discount_type")
-  discountValue      Decimal          @map("discount_value") @db.Decimal(12, 2)
-  grossAmount        Decimal          @map("gross_amount") @db.Decimal(12, 2)
-  discountAmount     Decimal          @map("discount_amount") @db.Decimal(12, 2)
-  netAmount          Decimal          @map("net_amount") @db.Decimal(12, 2)
-  stockMovements     SeedStockMovement[]
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seedBillId      String              @map("seed_bill_id") @db.Uuid
+  seedBill        SeedBill            @relation(fields: [seedBillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  productId       String              @map("product_id") @db.Uuid
+  product         Product             @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  enteredQuantity Decimal             @map("entered_quantity") @db.Decimal(15, 5)
+  enteredUnit     SeedQuantityUnit    @map("entered_unit")
+  quantityGrams   BigInt              @map("quantity_grams")
+  ratePerKg       Decimal             @map("rate_per_kg") @db.Decimal(12, 2)
+  discountType    SeedDiscountType    @map("discount_type")
+  discountValue   Decimal             @map("discount_value") @db.Decimal(12, 2)
+  grossAmount     Decimal             @map("gross_amount") @db.Decimal(12, 2)
+  discountAmount  Decimal             @map("discount_amount") @db.Decimal(12, 2)
+  netAmount       Decimal             @map("net_amount") @db.Decimal(12, 2)
+  stockMovements  SeedStockMovement[]
+
   @@index([seedBillId])
   @@index([productId])
   @@map("seed_bill_items")

@@ -11,6 +11,8 @@ const adminItems = [
   { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
   { label: 'Entries', path: '/admin/entries', icon: 'entries', enabled: true },
   { label: 'Payments', path: '/admin/payments', icon: 'payments', enabled: true },
+  { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
+  { label: 'Reports', path: '/admin/reports', icon: 'dashboard', enabled: true },
 ];
 const staffItems = [
   { label: 'New Entry', path: '/staff/new-entry', icon: 'new-entry', enabled: true },
@@ -202,6 +204,26 @@ export const AppShell = ({ children }: PropsWithChildren) => {
             ☰
           </button>
           <div className="ml-auto flex items-center gap-3">
+            {user?.role === 'STAFF' && (
+              <NavLink
+                to="/staff/new-entry"
+                className="primary-button flex min-h-10 items-center gap-2 px-3 sm:px-4"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-5 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span className="hidden sm:inline">New entry</span>
+                <span className="sm:hidden">New</span>
+              </NavLink>
+            )}
             <div className="text-right leading-tight">
               <p className="max-w-48 truncate text-sm font-bold text-stone-900">{user?.name}</p>
               <p className="mt-1 text-xs font-medium text-stone-500">{user?.mobile}</p>

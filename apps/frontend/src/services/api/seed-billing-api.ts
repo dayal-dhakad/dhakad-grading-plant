@@ -9,7 +9,12 @@ export const seedBillingApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
     getSeedBills: b.query<
       ReturnType<typeof SeedBillListResponseSchema.parse>,
-      { status: 'active' | 'cancelled' | 'all'; page: number; pageSize: number }
+      {
+        status: 'active' | 'cancelled' | 'all';
+        customerId?: string;
+        page: number;
+        pageSize: number;
+      }
     >({
       query: (params) => ({ url: '/seed-bills', params }),
       transformResponse: (v: unknown) => SeedBillListResponseSchema.parse(v),

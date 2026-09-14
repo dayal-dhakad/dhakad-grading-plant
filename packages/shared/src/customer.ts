@@ -15,6 +15,8 @@ export const CustomerSchema = z.strictObject({
   address: z.string().nullable(),
   village: z.string(),
   isActive: z.boolean(),
+  smsConsent: z.boolean().default(false),
+  whatsappConsent: z.boolean().default(false),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -26,6 +28,8 @@ export const CreateCustomerSchema = z.strictObject({
   name: requiredText('Customer name', 120),
   village: requiredText('Village', 120),
   address: z.string().trim().max(300, 'Address must not exceed 300 characters').optional(),
+  smsConsent: z.boolean().optional(),
+  whatsappConsent: z.boolean().optional(),
 });
 export const UpdateCustomerSchema = CreateCustomerSchema.partial().refine(
   (input) => Object.keys(input).length > 0,

@@ -8,7 +8,7 @@ const decimal = (label: string, allowZero = false) =>
       `${label} must be a valid amount with up to 2 decimal places`,
     );
 
-export const PaymentMethodSchema = z.enum(['CASH', 'ONLINE']);
+export const PaymentMethodSchema = z.enum(['CASH', 'ONLINE', 'DUE']);
 export const GradingQuantityUnitSchema = z.enum(['QUINTAL', 'KG']);
 export const CreateGradingEntrySchema = z.strictObject({
   customerId: z.uuid(),
@@ -19,6 +19,7 @@ export const CreateGradingEntrySchema = z.strictObject({
   paidAmount: decimal('Amount paid', true),
   waiveSmallBalance: z.boolean().optional().default(false),
   paymentMethod: PaymentMethodSchema,
+  paymentAccountId: z.uuid().nullable().optional(),
   serviceDate: z.iso.date(),
   notes: z.string().trim().max(500, 'Notes must not exceed 500 characters').optional(),
 });
@@ -40,6 +41,7 @@ export const GradingEntrySchema = z.strictObject({
   waivedAmount: z.string(),
   dueAmount: z.string(),
   paymentMethod: PaymentMethodSchema,
+  paymentAccount: z.strictObject({ id: z.uuid(), name: z.string(), upiId: z.string() }).nullable(),
   serviceDate: z.iso.date(),
   notes: z.string().nullable(),
   status: z.enum(['ACTIVE', 'CANCELLED']),

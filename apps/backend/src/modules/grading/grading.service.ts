@@ -3,12 +3,14 @@ import type { CreateGradingEntryInput, ReviseGradingEntryInput } from '@dhakad/s
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { GradingListQuery } from './grading.schemas.js';
+import { enqueueCustomerNotifications } from '../notifications/notification.service.js';
 
 const include = {
   customer: { select: { id: true, name: true, mobile: true } },
   crop: { select: { id: true, name: true } },
   unit: { select: { id: true, name: true, symbol: true } },
   createdBy: { select: { id: true, name: true } },
+  paymentAccount: { select: { id: true, name: true, upiId: true } },
   paymentAllocations: {
     where: { payment: { status: PaymentStatus.ACTIVE } },
     select: { amount: true, waivedAmount: true },
@@ -39,6 +41,7 @@ const present = (entry: Prisma.GradingEntryGetPayload<{ include: typeof include 
       entry.calculatedAmount.minus(totalPaid).minus(entry.waivedAmount),
     ).toFixed(2),
     paymentMethod: entry.paymentMethod,
+    paymentAccount: entry.paymentAccount,
     serviceDate: entry.serviceDate.toISOString().slice(0, 10),
     notes: entry.notes,
     status: entry.status,
@@ -155,6 +158,13 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
   const rate = input.rate ? new Prisma.Decimal(input.rate) : crop.cleaningRate;
   const calculatedAmount = calculateGradingAmount(input.quantity, rate, input.quantityUnit);
   const paidAmount = new Prisma.Decimal(input.paidAmount);
+  const paymentAccount = input.paymentAccountId
+    ? await prisma.paymentAccount.findFirst({
+        where: { id: input.paymentAccountId, isActive: true },
+      })
+    : null;
+  if (paidAmount.gt(0) && input.paymentMethod === 'ONLINE' && !paymentAccount)
+    throw new AppError(400, 'PAYMENT_ACCOUNT_REQUIRED', 'Select an active payment account');
   const entry = await prisma.$transaction(
     async (transaction) => {
       const ledger = await transaction.customerLedgerEntry.aggregate({
@@ -186,6 +196,8 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
           paidAmount,
           waivedAmount,
           paymentMethod: input.paymentMethod,
+          paymentAccountId:
+            paidAmount.gt(0) && input.paymentMethod === 'ONLINE' ? paymentAccount!.id : null,
           serviceDate: new Date(`${input.serviceDate}T00:00:00.000Z`),
           notes: input.notes || null,
           createdById: userId,
@@ -224,6 +236,19 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
             createdById: userId,
           },
         });
+      await enqueueCustomerNotifications(transaction, {
+        customer,
+        eventType: 'GRADING_CREATED',
+        createdById: userId,
+        gradingEntryId: created.id,
+        variables: {
+          name: customer.name,
+          number: `GR-${String(created.entryNumber).padStart(6, '0')}`,
+          amount: calculatedAmount.toFixed(2),
+          paid: paidAmount.toFixed(2),
+        },
+        preview: `Grading GR-${String(created.entryNumber).padStart(6, '0')} recorded. Amount ₹${calculatedAmount.toFixed(2)}, paid ₹${paidAmount.toFixed(2)}.`,
+      });
       return created;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -279,6 +304,20 @@ export const cancelGradingEntry = async (
             createdById: userId,
           },
         });
+      const customer = await transaction.customer.findUniqueOrThrow({
+        where: { id: current.customerId },
+      });
+      await enqueueCustomerNotifications(transaction, {
+        customer,
+        eventType: 'GRADING_CANCELLED',
+        createdById: userId,
+        gradingEntryId: current.id,
+        variables: {
+          name: customer.name,
+          number: `GR-${String(current.entryNumber).padStart(6, '0')}`,
+        },
+        preview: `Grading GR-${String(current.entryNumber).padStart(6, '0')} was cancelled.`,
+      });
       return present(updated);
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -295,6 +334,7 @@ const snapshot = (entry: {
   paidAmount: Prisma.Decimal;
   waivedAmount: Prisma.Decimal;
   paymentMethod: string;
+  paymentAccountId?: string | null;
   serviceDate: Date;
   notes: string | null;
 }) => ({
@@ -307,6 +347,7 @@ const snapshot = (entry: {
   paidAmount: entry.paidAmount.toFixed(2),
   waivedAmount: entry.waivedAmount.toFixed(2),
   paymentMethod: entry.paymentMethod,
+  paymentAccountId: entry.paymentAccountId ?? null,
   serviceDate: entry.serviceDate.toISOString().slice(0, 10),
   notes: entry.notes,
 });
@@ -353,6 +394,13 @@ export const reviseGradingEntry = async (
       const quantity = quantityInQuintals(input.quantity, input.quantityUnit);
       const calculatedAmount = calculateGradingAmount(input.quantity, rate, input.quantityUnit);
       const paidAmount = new Prisma.Decimal(input.paidAmount);
+      const paymentAccount = input.paymentAccountId
+        ? await transaction.paymentAccount.findFirst({
+            where: { id: input.paymentAccountId, isActive: true },
+          })
+        : null;
+      if (paidAmount.gt(0) && input.paymentMethod === 'ONLINE' && !paymentAccount)
+        throw new AppError(400, 'PAYMENT_ACCOUNT_REQUIRED', 'Select an active payment account');
       const oldNet = current.calculatedAmount.minus(current.paidAmount).minus(current.waivedAmount);
       const ledger = await transaction.customerLedgerEntry.aggregate({
         where: { customerId: input.customerId },
@@ -384,6 +432,8 @@ export const reviseGradingEntry = async (
         paidAmount,
         waivedAmount,
         paymentMethod: input.paymentMethod,
+        paymentAccountId:
+          paidAmount.gt(0) && input.paymentMethod === 'ONLINE' ? paymentAccount!.id : null,
         serviceDate: new Date(`${input.serviceDate}T00:00:00.000Z`),
         notes: input.notes || null,
       };

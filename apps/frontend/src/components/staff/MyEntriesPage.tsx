@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
+import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
 export const MyEntriesPage = () => {
   const [tab, setTab] = useState<'grading' | 'seeds'>('grading');
   const [page, setPage] = useState(1);
@@ -55,7 +56,9 @@ export const MyEntriesPage = () => {
                   <tr className="border-t" key={entry.id}>
                     <td className="table-id">GR-{String(entry.entryNumber).padStart(6, '0')}</td>
                     <td className="table-primary">
-                      {entry.customer.name}
+                      <Link className="hover:underline" to={`/customers/${entry.customer.id}`}>
+                        {entry.customer.name}
+                      </Link>
                       <span className="block text-xs text-stone-500">{entry.serviceDate}</span>
                     </td>
                     <td className="p-4">
@@ -66,9 +69,21 @@ export const MyEntriesPage = () => {
                       ₹{entry.paidAmount}
                     </td>
                     <td className="table-due">₹{entry.dueAmount}</td>
-                    <td className="p-4">{entry.paymentMethod === 'CASH' ? 'Cash' : 'Online'}</td>
+                    <td className="p-4">
+                      {entry.paymentMethod === 'CASH'
+                        ? 'Cash'
+                        : entry.paymentMethod === 'ONLINE'
+                          ? 'Online'
+                          : 'Due'}
+                      {entry.paymentAccount && (
+                        <span className="block text-xs text-stone-500">
+                          {entry.paymentAccount.name}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4">
                       <div className="flex gap-3">
+                        <PrintReceiptButton kind="grading" record={entry} />
                         {entry.status === 'ACTIVE' && (
                           <Link
                             className="font-semibold text-brand-800 hover:underline"

@@ -28,7 +28,7 @@ const EntryForm = ({ close }: { close: () => void }) => {
   const [cropId, setCropId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE' | 'DUE'>('CASH');
   const [serviceDate, setServiceDate] = useState(today());
   const [notes, setNotes] = useState('');
   const [paymentEdited, setPaymentEdited] = useState(false);
@@ -154,8 +154,8 @@ const EntryForm = ({ close }: { close: () => void }) => {
           </label>
           <fieldset>
             <legend className="field-label">Payment type</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(['CASH', 'ONLINE'] as const).map((method) => (
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {(['CASH', 'ONLINE', 'DUE'] as const).map((method) => (
                 <label
                   key={method}
                   className={`grid min-h-12 cursor-pointer place-items-center rounded-xl border font-bold ${paymentMethod === method ? 'border-brand-700 bg-brand-50 text-brand-800' : 'border-stone-300'}`}
@@ -164,9 +164,15 @@ const EntryForm = ({ close }: { close: () => void }) => {
                     className="sr-only"
                     type="radio"
                     checked={paymentMethod === method}
-                    onChange={() => setPaymentMethod(method)}
+                    onChange={() => {
+                      setPaymentMethod(method);
+                      if (method === 'DUE') {
+                        setPaidAmount('0.00');
+                        setPaymentEdited(true);
+                      }
+                    }}
                   />
-                  {method === 'CASH' ? 'Cash' : 'Online'}
+                  {method === 'CASH' ? 'Cash' : method === 'ONLINE' ? 'Online' : 'Due'}
                 </label>
               ))}
             </div>
@@ -307,8 +313,13 @@ export const GradingPage = () => {
                 <div className="sm:text-right">
                   <p className="text-xl font-bold">₹{entry.calculatedAmount}</p>
                   <p className="text-sm text-stone-600">
-                    Paid ₹{entry.paidAmount} ({entry.paymentMethod === 'CASH' ? 'Cash' : 'Online'})
-                    · Due ₹{entry.dueAmount}
+                    Paid ₹{entry.paidAmount} (
+                    {entry.paymentMethod === 'CASH'
+                      ? 'Cash'
+                      : entry.paymentMethod === 'ONLINE'
+                        ? 'Online'
+                        : 'Due'}
+                    ) · Due ₹{entry.dueAmount}
                   </p>
                   {entry.status === 'ACTIVE' && (
                     <button

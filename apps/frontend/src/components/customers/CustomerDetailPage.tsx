@@ -1,13 +1,24 @@
-import { Link, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { useGetCustomerQuery } from '@/services/api/customer-api';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 import { CustomerPaymentsPanel } from '@/components/payments/CustomerPaymentsPanel';
+import { CustomerNotificationsPanel } from '@/components/notifications/CustomerNotificationsPanel';
+import { SeedBillsTable } from '@/components/seeds/SeedBillsTable';
+import { TablePagination } from '@/components/table/TablePagination';
+import { PrintReceiptButton } from '@/components/receipts/PrintReceiptButton';
 
 export const CustomerDetailPage = () => {
+  const navigate = useNavigate();
   const { id = '' } = useParams();
+  const { data: user } = useGetCurrentUserQuery();
+  const [transactionType, setTransactionType] = useState<'grading' | 'seeds'>('grading');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const { data: customer, isLoading, isError } = useGetCustomerQuery(id);
-  const { data: grading } = useGetGradingEntriesQuery(
-    { customerId: id, status: 'all', page: 1 },
+  const { data: grading, isLoading: isGradingLoading } = useGetGradingEntriesQuery(
+    { customerId: id, status: 'all', page, pageSize },
     { skip: !id },
   );
   if (isLoading) return <div className="card">Loading customer…</div>;
@@ -15,9 +26,12 @@ export const CustomerDetailPage = () => {
     return <div className="card text-red-700">Customer could not be loaded.</div>;
   return (
     <div className="mx-auto max-w-6xl">
-      <Link to="/admin/customers" className="font-semibold text-brand-800 hover:underline">
-        ← Back to customers
-      </Link>
+      <button
+        className="font-semibold text-brand-800 hover:underline"
+        onClick={() => void navigate(-1)}
+      >
+        ← Back
+      </button>
       <section className="card mt-5">
         <p className="card-label">Customer</p>
         <h1 className="mt-2 text-3xl font-bold">{customer.name}</h1>
@@ -27,36 +41,96 @@ export const CustomerDetailPage = () => {
           {customer.address ? ` · ${customer.address}` : ''}
         </p>
       </section>
-      <CustomerPaymentsPanel customerId={customer.id} />
       <section className="mt-6">
-        <h2 className="text-xl font-bold">Grading history</h2>
-        <div className="mt-3 grid gap-3">
-          {!grading?.gradingEntries.length ? (
-            <div className="card text-stone-600">No grading entries yet.</div>
-          ) : (
-            grading.gradingEntries.map((entry) => (
-              <article className="card" key={entry.id}>
-                <div className="flex flex-wrap justify-between gap-3">
-                  <div>
-                    <p className="font-bold">
-                      GR-{String(entry.entryNumber).padStart(6, '0')} · {entry.crop.name}
-                    </p>
-                    <p className="mt-1 text-sm text-stone-600">
-                      {entry.serviceDate} · {entry.quantity} {entry.unit.symbol}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">₹{entry.calculatedAmount}</p>
-                    <p className="text-sm text-stone-600">
-                      Paid ₹{entry.paidAmount} · Due ₹{entry.dueAmount}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))
-          )}
+        <h2 className="text-xl font-bold">All transactions</h2>
+        <div className="mt-3 flex gap-2 border-b">
+          <button
+            className={`px-5 py-3 font-bold ${transactionType === 'grading' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-stone-500'}`}
+            onClick={() => {
+              setTransactionType('grading');
+              setPage(1);
+            }}
+          >
+            Grading
+          </button>
+          <button
+            className={`px-5 py-3 font-bold ${transactionType === 'seeds' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-stone-500'}`}
+            onClick={() => setTransactionType('seeds')}
+          >
+            Seeds
+          </button>
         </div>
+        {transactionType === 'seeds' ? (
+          <SeedBillsTable customerId={customer.id} readOnly />
+        ) : (
+          <div className="table-panel mt-5">
+            <table className="data-table min-w-[760px]">
+              <thead>
+                <tr>
+                  <th>Entry</th>
+                  <th>Crop / quantity</th>
+                  <th>Total</th>
+                  <th>Paid</th>
+                  <th>Due</th>
+                  <th>Staff</th>
+                  <th>Status</th>
+                  <th>Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isGradingLoading ? (
+                  <tr>
+                    <td colSpan={8}>Loading grading transactions…</td>
+                  </tr>
+                ) : !grading?.gradingEntries.length ? (
+                  <tr>
+                    <td colSpan={8}>No grading transactions yet.</td>
+                  </tr>
+                ) : (
+                  grading.gradingEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="table-id">
+                        GR-{String(entry.entryNumber).padStart(6, '0')}
+                        <span className="block text-xs text-stone-500">{entry.serviceDate}</span>
+                      </td>
+                      <td>
+                        {entry.crop.name} · {entry.quantity} {entry.unit.symbol}
+                      </td>
+                      <td>
+                        <PrintReceiptButton kind="grading" record={entry} />
+                      </td>
+                      <td className="table-money">₹{entry.calculatedAmount}</td>
+                      <td className="font-semibold text-emerald-700">₹{entry.paidAmount}</td>
+                      <td className="table-due">₹{entry.dueAmount}</td>
+                      <td>{entry.createdBy.name}</td>
+                      <td>
+                        <span
+                          className={`status-badge ${entry.status === 'ACTIVE' ? 'status-badge-positive' : 'status-badge-warning'}`}
+                        >
+                          {entry.status === 'ACTIVE' ? 'Active' : 'Cancelled'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              total={grading?.pagination.total ?? 0}
+              totalPages={grading?.pagination.totalPages ?? 0}
+              onPageChange={setPage}
+              onPageSizeChange={(value) => {
+                setPageSize(value);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
       </section>
+      <CustomerPaymentsPanel customerId={customer.id} />
+      {user?.role === 'ADMIN' && <CustomerNotificationsPanel customer={customer} />}
     </div>
   );
 };

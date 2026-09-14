@@ -82,7 +82,16 @@ export const getCustomer = async (id: string) => {
 
 export const createCustomer = async (input: CreateCustomerInput) => {
   try {
-    return await prisma.customer.create({ data: { ...input, address: input.address || null } });
+    return await prisma.customer.create({
+      data: {
+        mobile: input.mobile,
+        name: input.name,
+        village: input.village,
+        address: input.address || null,
+        ...(input.smsConsent !== undefined ? { smsConsent: input.smsConsent } : {}),
+        ...(input.whatsappConsent !== undefined ? { whatsappConsent: input.whatsappConsent } : {}),
+      },
+    });
   } catch (error) {
     return translatePrismaError(error);
   }
@@ -94,6 +103,8 @@ export const updateCustomer = async (id: string, input: UpdateCustomerInput) => 
   if (input.name !== undefined) data.name = input.name;
   if (input.village !== undefined) data.village = input.village;
   if (input.address !== undefined) data.address = input.address || null;
+  if (input.smsConsent !== undefined) data.smsConsent = input.smsConsent;
+  if (input.whatsappConsent !== undefined) data.whatsappConsent = input.whatsappConsent;
   try {
     return await prisma.customer.update({
       where: { id },

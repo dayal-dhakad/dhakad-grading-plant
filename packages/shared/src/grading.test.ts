@@ -13,6 +13,15 @@ describe('grading contracts', () => {
   it('accepts a valid entry and zero payment', () => {
     expect(CreateGradingEntrySchema.parse({ ...valid, paidAmount: '0' }).paidAmount).toBe('0');
   });
+  it('accepts due as an entry payment mode with zero paid', () => {
+    const result = CreateGradingEntrySchema.parse({
+      ...valid,
+      paidAmount: '0.00',
+      paymentMethod: 'DUE',
+    });
+    expect(result.paymentMethod).toBe('DUE');
+    expect(result.paidAmount).toBe('0.00');
+  });
   it('accepts an explicit small-balance waiver choice', () => {
     expect(
       CreateGradingEntrySchema.parse({ ...valid, paidAmount: '60', waiveSmallBalance: true })

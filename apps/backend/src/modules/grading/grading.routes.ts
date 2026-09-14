@@ -44,7 +44,7 @@ gradingRouter.get('/', async (request, response, next) => {
     response.json(
       await listGradingEntries(
         query,
-        request.authUser!.role === 'STAFF' ? request.authUser!.id : undefined,
+        request.authUser!.role === 'STAFF' && !query.customerId ? request.authUser!.id : undefined,
       ),
     );
   } catch (error) {

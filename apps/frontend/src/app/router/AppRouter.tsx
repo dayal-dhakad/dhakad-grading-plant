@@ -15,6 +15,8 @@ import { GradingRevisionHistoryPage } from '@/components/grading/GradingRevision
 import { PaymentsPage } from '@/components/payments/PaymentsPage';
 import { SeedManagementPage } from '@/components/admin/SeedManagementPage';
 import { SeedDetailPage } from '@/components/admin/SeedDetailPage';
+import { PaymentAccountsPage } from '@/components/admin/PaymentAccountsPage';
+import { ReportsPage } from '@/components/admin/ReportsPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 
 const SessionGate = () => {
@@ -63,17 +65,19 @@ export const AppRouter = () => (
     <Route path="/login" element={<LoginRoute />} />
     <Route path="/" element={<SessionGate />}>
       <Route index element={<RoleLanding />} />
+      <Route path="customers/:id" element={<CustomerDetailPage />} />
       <Route element={<RoleGate role="ADMIN" />}>
         <Route path="admin" element={<DashboardPage />} />
         <Route path="admin/staff" element={<StaffManagementPage />} />
         <Route path="admin/staff/:id" element={<StaffDetailPage />} />
         <Route path="admin/customers" element={<CustomersPage />} />
-        <Route path="admin/customers/:id" element={<CustomerDetailPage />} />
         <Route path="admin/entries" element={<AdminEntriesPage />} />
         <Route path="admin/grading-settings" element={<GradingSettingsPage />} />
         <Route path="admin/payments" element={<PaymentsPage admin />} />
         <Route path="admin/seeds" element={<SeedManagementPage />} />
         <Route path="admin/seeds/:id" element={<SeedDetailPage />} />
+        <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
+        <Route path="admin/reports" element={<ReportsPage />} />
         <Route path="admin/entries/:id/history" element={<GradingRevisionHistoryPage admin />} />
       </Route>
       <Route element={<RoleGate role="STAFF" />}>
