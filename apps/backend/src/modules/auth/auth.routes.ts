@@ -19,8 +19,21 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  message: {
-    error: { code: 'TOO_MANY_LOGIN_ATTEMPTS', message: 'Too many login attempts; try again later' },
+  handler: (request, response, _next, options) => {
+    const rateLimitInfo = (request as typeof request & { rateLimit?: { resetTime?: Date } })
+      .rateLimit;
+    const resetTime = rateLimitInfo?.resetTime?.getTime();
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil(((resetTime ?? Date.now() + options.windowMs) - Date.now()) / 1000),
+    );
+    response.status(options.statusCode).json({
+      error: {
+        code: 'TOO_MANY_LOGIN_ATTEMPTS',
+        message: 'Too many login attempts; try again later',
+        retryAfterSeconds,
+      },
+    });
   },
 });
 authRouter.post('/login', loginLimiter, async (request, response, next) => {

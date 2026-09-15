@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AuthResponseSchema, LoginInputSchema } from './auth-api';
+import { ApiErrorResponseSchema, AuthResponseSchema, LoginInputSchema } from './auth-api';
 
 describe('LoginInputSchema', () => {
   it('accepts the backend wire format', () => {
@@ -32,5 +32,20 @@ describe('AuthResponseSchema', () => {
         user: { id: '1', mobile: '9876543210', name: 'User', role: 'OWNER' },
       }).success,
     ).toBe(false);
+  });
+});
+describe('ApiErrorResponseSchema', () => {
+  it('accepts login rate-limit countdown details', () => {
+    const result = ApiErrorResponseSchema.parse({
+      status: 429,
+      data: {
+        error: {
+          code: 'TOO_MANY_LOGIN_ATTEMPTS',
+          message: 'Too many login attempts; try again later',
+          retryAfterSeconds: 321,
+        },
+      },
+    });
+    expect(result.data.error.retryAfterSeconds).toBe(321);
   });
 });

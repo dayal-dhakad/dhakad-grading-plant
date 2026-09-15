@@ -7,6 +7,7 @@ import { AppError } from '../../shared/errors/app-error.js';
 import {
   createCustomer,
   getCustomer,
+  getCustomerDues,
   getCustomerGradingDue,
   listCustomers,
   setCustomerStatus,
@@ -52,6 +53,14 @@ customerRouter.get('/:id/grading-due', async (request, response, next) => {
   try {
     const { id } = parse(CustomerIdParamsSchema, request.params);
     response.json({ totalDue: await getCustomerGradingDue(id) });
+  } catch (error) {
+    next(error);
+  }
+});
+customerRouter.get('/:id/dues', async (request, response, next) => {
+  try {
+    const { id } = parse(CustomerIdParamsSchema, request.params);
+    response.json(await getCustomerDues(id));
   } catch (error) {
     next(error);
   }

@@ -5,6 +5,7 @@ export {
   CustomerListResponseSchema,
   CustomerListItemSchema,
   CustomerResponseSchema,
+  CustomerDuesResponseSchema,
   CustomerSchema,
   UpdateCustomerSchema,
   type CreateCustomerInput,

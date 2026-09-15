@@ -1,8 +1,7 @@
-import { Role } from '@prisma/client';
 import { CreatePaymentSchema } from '@dhakad/shared';
 import { Router } from 'express';
 import type { z } from 'zod';
-import { requireAuth, requireRole } from '../auth/auth.middleware.js';
+import { requireAuth } from '../auth/auth.middleware.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import {
   PaymentCustomerParamsSchema,
@@ -59,13 +58,14 @@ paymentRouter.get('/customers/:customerId/ledger', async (request, response, nex
     next(error);
   }
 });
-paymentRouter.post('/:id/reverse', requireRole(Role.ADMIN), async (request, response, next) => {
+paymentRouter.post('/:id/reverse', async (request, response, next) => {
   try {
     response.json({
       payment: await reversePayment(
         parse(PaymentIdParamsSchema, request.params).id,
         parse(ReversePaymentSchema, request.body).reason,
         request.authUser!.id,
+        request.authUser!.role === 'STAFF',
       ),
     });
   } catch (error) {

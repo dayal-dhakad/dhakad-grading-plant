@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   updateCustomer: vi.fn(),
   setCustomerStatus: vi.fn(),
   getCustomerGradingDue: vi.fn(),
+  getCustomerDues: vi.fn(),
 }));
 vi.mock('./customer.service.js', () => mocks);
 vi.mock('../auth/auth.middleware.js', () => ({
@@ -80,5 +81,20 @@ describe('customer routes', () => {
       .send({ isActive: false });
     expect(response.status).toBe(200);
     expect(mocks.setCustomerStatus).toHaveBeenCalledWith(customer.id, false);
+  });
+  it('returns the customer dues breakdown', async () => {
+    mocks.getCustomerDues.mockResolvedValue({
+      totalDue: '2900.00',
+      gradingDue: '900.00',
+      seedDue: '2000.00',
+    });
+    const response = await request(createApp()).get(`/api/v1/customers/${customer.id}/dues`);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      totalDue: '2900.00',
+      gradingDue: '900.00',
+      seedDue: '2000.00',
+    });
+    expect(mocks.getCustomerDues).toHaveBeenCalledWith(customer.id);
   });
 });

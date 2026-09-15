@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
-import { useGetCustomerQuery } from '@/services/api/customer-api';
+import { useGetCustomerDuesQuery, useGetCustomerQuery } from '@/services/api/customer-api';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 import { CustomerPaymentsPanel } from '@/components/payments/CustomerPaymentsPanel';
 import { CustomerNotificationsPanel } from '@/components/notifications/CustomerNotificationsPanel';
@@ -17,6 +17,7 @@ export const CustomerDetailPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { data: customer, isLoading, isError } = useGetCustomerQuery(id);
+  const { data: dues, isLoading: isDuesLoading } = useGetCustomerDuesQuery(id, { skip: !id });
   const { data: grading, isLoading: isGradingLoading } = useGetGradingEntriesQuery(
     { customerId: id, status: 'all', page, pageSize },
     { skip: !id },
@@ -40,6 +41,24 @@ export const CustomerDetailPage = () => {
           {customer.village}
           {customer.address ? ` · ${customer.address}` : ''}
         </p>
+        <div className="mt-5 grid gap-3 border-t border-stone-200 pt-5 sm:grid-cols-3">
+          {[
+            { label: 'Total dues', value: dues?.totalDue, tone: 'text-red-700 bg-red-50' },
+            {
+              label: 'Grading dues',
+              value: dues?.gradingDue,
+              tone: 'text-amber-800 bg-amber-50',
+            },
+            { label: 'Seed dues', value: dues?.seedDue, tone: 'text-brand-800 bg-brand-50' },
+          ].map((item) => (
+            <div className={`rounded-xl p-4 ${item.tone}`} key={item.label}>
+              <p className="text-xs font-bold uppercase tracking-wide opacity-75">{item.label}</p>
+              <p className="mt-1 text-2xl font-black tabular-nums">
+                {isDuesLoading ? 'Loading…' : `₹${item.value ?? '0.00'}`}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-bold">All transactions</h2>

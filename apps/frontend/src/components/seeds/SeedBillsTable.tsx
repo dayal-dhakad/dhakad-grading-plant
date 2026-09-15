@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useCancelSeedBillMutation, useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
 import { TablePagination } from '../table/TablePagination';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
+import { EntryCancellationDialog } from '../entries/EntryCancellationDialog';
+import { DeleteIcon } from '../table/TableActions';
+import { tableActionClass } from '../table/table-action-styles';
 export const SeedBillsTable = ({
   customerId,
   readOnly = false,
@@ -18,14 +21,11 @@ export const SeedBillsTable = ({
     page,
     pageSize,
   });
-  const [cancel] = useCancelSeedBillMutation();
-  const cancelOne = (id: string) => {
-    const reason = window.prompt('Reason for cancelling this seed bill');
-    if (reason?.trim()) void cancel({ id, reason: reason.trim() });
-  };
+  const [billToDelete, setBillToDelete] = useState<{ id: string; label: string }>();
+  const [cancel, cancelState] = useCancelSeedBillMutation();
   return (
     <div className="table-panel mt-5">
-      <table className="data-table min-w-[900px]">
+      <table className="data-table min-w-[1040px]">
         <thead>
           <tr>
             <th>Bill</th>
@@ -73,18 +73,24 @@ export const SeedBillsTable = ({
                   <span
                     className={`status-badge ${b.status === 'ACTIVE' ? 'status-badge-positive' : 'status-badge-warning'}`}
                   >
-                    {b.status === 'ACTIVE' ? 'Active' : 'Cancelled'}
+                    {b.status === 'ACTIVE' ? 'Active' : 'Deleted'}
                   </span>
                 </td>
                 <td>
-                  <div className="flex gap-3">
+                  <div className="flex flex-nowrap items-center gap-1.5">
                     <PrintReceiptButton kind="seed" record={b} />
                     {!readOnly && b.status === 'ACTIVE' && (
                       <button
-                        className="font-semibold text-red-700 hover:underline"
-                        onClick={() => cancelOne(b.id)}
+                        className={tableActionClass('danger')}
+                        onClick={() =>
+                          setBillToDelete({
+                            id: b.id,
+                            label: `SEED-${String(b.billNumber).padStart(6, '0')}`,
+                          })
+                        }
                       >
-                        Cancel
+                        <DeleteIcon />
+                        Delete
                       </button>
                     )}
                   </div>
@@ -105,6 +111,17 @@ export const SeedBillsTable = ({
           setPage(1);
         }}
       />
+      {billToDelete && (
+        <EntryCancellationDialog
+          entryLabel={billToDelete.label}
+          isLoading={cancelState.isLoading}
+          onCancel={() => setBillToDelete(undefined)}
+          onConfirm={async (reason) => {
+            await cancel({ id: billToDelete.id, reason }).unwrap();
+            setBillToDelete(undefined);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import {
   ApiErrorResponseSchema,
   LoginInputSchema,
@@ -14,8 +14,18 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [login, { isLoading }] = useLoginMutation();
+
+  useEffect(() => {
+    if (retryAfterSeconds <= 0) return;
+    const timer = window.setInterval(
+      () => setRetryAfterSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [retryAfterSeconds]);
 
   const clearFieldError = (field: keyof LoginInput) => {
     setFieldErrors((current) => {
@@ -39,6 +49,7 @@ export const LoginPage = () => {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (retryAfterSeconds > 0) return;
     setMessage('');
     const input = LoginInputSchema.safeParse({ mobile, password });
     if (!input.success) {
@@ -58,6 +69,9 @@ export const LoginPage = () => {
     } catch (error) {
       const apiError = ApiErrorResponseSchema.safeParse(error);
       if (apiError.success) {
+        if (apiError.data.data.error.code === 'TOO_MANY_LOGIN_ATTEMPTS') {
+          setRetryAfterSeconds(apiError.data.data.error.retryAfterSeconds ?? 15 * 60);
+        }
         const backendFieldErrors: FieldErrors = {};
         for (const detail of apiError.data.data.error.details ?? []) {
           if (detail.path === 'mobile' || detail.path === 'password') {
@@ -102,7 +116,12 @@ export const LoginPage = () => {
           <p className="mt-3 text-stone-600">
             Use the mobile number and password provided by your administrator.
           </p>
-          <form className="mt-8 space-y-5" onSubmit={(event) => void submit(event)} noValidate>
+          <form
+            className="mt-8 space-y-5"
+            onSubmit={(event) => void submit(event)}
+            autoComplete="off"
+            noValidate
+          >
             <MobileNumberInput
               id="mobile"
               label="Mobile number"
@@ -113,7 +132,8 @@ export const LoginPage = () => {
               }}
               onBlur={() => validateField('mobile', mobile)}
               error={fieldErrors.mobile}
-              autoComplete="username"
+              autoComplete="one-time-code"
+              preventAutoFill
             />
             <div>
               <label className="field-label" htmlFor="password">
@@ -128,9 +148,13 @@ export const LoginPage = () => {
               >
                 <input
                   id="password"
+                  name="login-secret-entry"
                   className="min-w-0 flex-1 rounded-l-xl bg-transparent px-4 font-medium text-stone-900 caret-brand-700 outline-none"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete="one-time-code"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-lpignore="true"
                   value={password}
                   onChange={(event) => {
                     setPassword(event.target.value);
@@ -189,11 +213,21 @@ export const LoginPage = () => {
                 role="alert"
                 className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
               >
-                {message}
+                {retryAfterSeconds > 0
+                  ? `Too many login attempts. Try again in ${String(Math.floor(retryAfterSeconds / 60)).padStart(2, '0')}:${String(retryAfterSeconds % 60).padStart(2, '0')}.`
+                  : message}
               </p>
             )}
-            <button className="primary-button w-full" type="submit" disabled={isLoading}>
-              {isLoading ? 'Signing in…' : 'Sign in'}
+            <button
+              className="primary-button w-full"
+              type="submit"
+              disabled={isLoading || retryAfterSeconds > 0}
+            >
+              {isLoading
+                ? 'Signing in…'
+                : retryAfterSeconds > 0
+                  ? `Try again in ${String(Math.floor(retryAfterSeconds / 60)).padStart(2, '0')}:${String(retryAfterSeconds % 60).padStart(2, '0')}`
+                  : 'Sign in'}
             </button>
           </form>
         </div>

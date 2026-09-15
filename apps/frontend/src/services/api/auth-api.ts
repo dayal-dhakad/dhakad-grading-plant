@@ -10,9 +10,12 @@ export const AuthUserSchema = z.strictObject({
 });
 export const AuthResponseSchema = z.strictObject({ user: AuthUserSchema });
 export const ApiErrorResponseSchema = z.object({
+  status: z.union([z.number(), z.string()]).optional(),
   data: z.object({
     error: z.object({
+      code: z.string().optional(),
       message: z.string(),
+      retryAfterSeconds: z.number().int().positive().optional(),
       details: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
     }),
   }),

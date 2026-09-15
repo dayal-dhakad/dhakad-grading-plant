@@ -131,3 +131,66 @@ export const getCustomerGradingDue = async (id: string) => {
   });
   return (totals._sum.amount ?? new Prisma.Decimal(0)).toFixed(2);
 };
+
+export const getCustomerDues = async (id: string) => {
+  await getCustomer(id);
+  const [ledger, gradingEntries, seedBills] = await prisma.$transaction([
+    prisma.customerLedgerEntry.aggregate({
+      where: { customerId: id },
+      _sum: { amount: true },
+    }),
+    prisma.gradingEntry.findMany({
+      where: { customerId: id, status: 'ACTIVE' },
+      select: {
+        calculatedAmount: true,
+        paidAmount: true,
+        waivedAmount: true,
+        paymentAllocations: {
+          where: { payment: { status: 'ACTIVE' } },
+          select: { amount: true, waivedAmount: true },
+        },
+      },
+    }),
+    prisma.seedBill.findMany({
+      where: { customerId: id, status: 'ACTIVE' },
+      select: { netAmount: true, paidAmount: true, waivedAmount: true },
+    }),
+  ]);
+  const zero = new Prisma.Decimal(0);
+  const totalDue = Prisma.Decimal.max(zero, ledger._sum.amount ?? zero);
+  const rawGradingDue = Prisma.Decimal.max(
+    zero,
+    gradingEntries.reduce(
+      (sum, entry) =>
+        sum
+          .plus(entry.calculatedAmount)
+          .minus(entry.paidAmount)
+          .minus(entry.waivedAmount)
+          .minus(
+            entry.paymentAllocations.reduce(
+              (allocated, item) => allocated.plus(item.amount).plus(item.waivedAmount),
+              new Prisma.Decimal(0),
+            ),
+          ),
+      new Prisma.Decimal(0),
+    ),
+  );
+  const rawSeedDue = Prisma.Decimal.max(
+    zero,
+    seedBills.reduce(
+      (sum, bill) => sum.plus(bill.netAmount).minus(bill.paidAmount).minus(bill.waivedAmount),
+      new Prisma.Decimal(0),
+    ),
+  );
+  const unattributedReduction = Prisma.Decimal.max(
+    zero,
+    rawGradingDue.plus(rawSeedDue).minus(totalDue),
+  );
+  const gradingDue = Prisma.Decimal.max(zero, rawGradingDue.minus(unattributedReduction));
+  const seedDue = Prisma.Decimal.max(zero, totalDue.minus(gradingDue));
+  return {
+    totalDue: totalDue.toFixed(2),
+    gradingDue: gradingDue.toFixed(2),
+    seedDue: seedDue.toFixed(2),
+  };
+};

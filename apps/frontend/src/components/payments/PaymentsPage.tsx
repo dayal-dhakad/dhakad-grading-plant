@@ -5,6 +5,9 @@ import { useGetPaymentsQuery, useReversePaymentMutation } from '@/services/api/p
 import { CustomerPaymentsPanel } from './CustomerPaymentsPanel';
 import { TablePagination } from '../table/TablePagination';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
+import { PaymentReversalDialog } from './PaymentReversalDialog';
+import { ReverseIcon } from '../table/TableActions';
+import { tableActionClass } from '../table/table-action-styles';
 export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
   const [search, setSearch] = useState('');
   const deferred = useDeferredValue(search.trim());
@@ -20,11 +23,13 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
     page,
     pageSize,
   });
-  const [reverse] = useReversePaymentMutation();
-  const reverseOne = (id: string, customer: string) => {
-    const reason = window.prompt('Reason for reversing this payment');
-    if (reason?.trim()) void reverse({ id, customerId: customer, reason: reason.trim() });
-  };
+  const [paymentToReverse, setPaymentToReverse] = useState<{
+    id: string;
+    customerId: string;
+    receiptLabel: string;
+    amount: string;
+  }>();
+  const [reverse, reverseState] = useReversePaymentMutation();
   return (
     <div className="mx-auto max-w-6xl">
       <p className="text-sm font-semibold text-brand-700">Customer dues</p>
@@ -117,13 +122,21 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-3">
+                    <div className="flex flex-nowrap items-center gap-1.5">
                       <PrintReceiptButton kind="payment" record={payment} />
-                      {admin && payment.status === 'ACTIVE' && (
+                      {payment.status === 'ACTIVE' && (
                         <button
-                          className="font-semibold text-red-700 hover:underline"
-                          onClick={() => reverseOne(payment.id, payment.customer.id)}
+                          className={tableActionClass('danger')}
+                          onClick={() =>
+                            setPaymentToReverse({
+                              id: payment.id,
+                              customerId: payment.customer.id,
+                              receiptLabel: `RCPT-${String(payment.receiptNumber).padStart(6, '0')}`,
+                              amount: payment.amount,
+                            })
+                          }
                         >
+                          <ReverseIcon />
                           Reverse
                         </button>
                       )}
@@ -146,6 +159,22 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
           }}
         />
       </div>
+      {paymentToReverse && (
+        <PaymentReversalDialog
+          receiptLabel={paymentToReverse.receiptLabel}
+          amount={paymentToReverse.amount}
+          isLoading={reverseState.isLoading}
+          onCancel={() => setPaymentToReverse(undefined)}
+          onConfirm={async (reason) => {
+            await reverse({
+              id: paymentToReverse.id,
+              customerId: paymentToReverse.customerId,
+              reason,
+            }).unwrap();
+            setPaymentToReverse(undefined);
+          }}
+        />
+      )}
     </div>
   );
 };

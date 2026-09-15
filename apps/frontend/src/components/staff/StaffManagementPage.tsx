@@ -18,6 +18,7 @@ export const StaffManagementPage = () => {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const { data, isLoading } = useGetStaffListQuery({
     ...(deferred ? { search: deferred } : {}),
@@ -32,6 +33,7 @@ export const StaffManagementPage = () => {
     setName('');
     setMobile('');
     setPassword('');
+    setShowPassword(false);
     setMessage('');
   };
   const submit = async (event: FormEvent) => {
@@ -109,13 +111,48 @@ export const StaffManagementPage = () => {
               />
             </label>
             <label className="field-label sm:col-span-2">
-              Temporary password *
-              <input
-                className="field mt-2"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              Password *
+              <div className="relative mt-2">
+                <input
+                  className="field pr-12"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 grid min-w-12 place-items-center rounded-r-xl text-brand-800 transition hover:bg-brand-100 focus-visible:bg-brand-100"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Hide Password' : 'Show temporary password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.5 0 9 5 9 5a16.6 16.6 0 01-2.1 2.5M6.6 6.6C4.3 8.1 3 10 3 10s3.5 5 9 5a9.8 9.8 0 004-.8" />
+                    </svg>
+                  ) : (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" />
+                      <circle cx="12" cy="12" r="2" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </label>
             {message && (
               <p

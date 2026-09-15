@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { GradingEntry, Payment, SeedBill } from '@dhakad/shared';
+import { PrintIcon } from '../table/TableActions';
+import { tableActionClass } from '../table/table-action-styles';
 
 type Props =
   | { kind: 'grading'; record: GradingEntry }
@@ -26,10 +28,8 @@ export const PrintReceiptButton = (props: Props) => {
         : 'Payment receipt';
   return (
     <>
-      <button
-        className="font-semibold text-brand-800 hover:underline"
-        onClick={() => setOpen(true)}
-      >
+      <button className={tableActionClass('brand')} onClick={() => setOpen(true)}>
+        <PrintIcon />
         Print
       </button>
       {open && (

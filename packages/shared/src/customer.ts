@@ -45,6 +45,12 @@ export const CustomerListResponseSchema = z.strictObject({
   }),
 });
 export const CustomerResponseSchema = z.strictObject({ customer: CustomerSchema });
+const DueAmountSchema = z.string().regex(/^\d+\.\d{2}$/);
+export const CustomerDuesResponseSchema = z.strictObject({
+  totalDue: DueAmountSchema,
+  gradingDue: DueAmountSchema,
+  seedDue: DueAmountSchema,
+});
 
 export type Customer = z.infer<typeof CustomerSchema>;
 export type CreateCustomerInput = z.infer<typeof CreateCustomerSchema>;

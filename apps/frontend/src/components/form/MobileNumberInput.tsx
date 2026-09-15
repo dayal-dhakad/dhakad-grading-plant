@@ -7,7 +7,8 @@ type MobileNumberInputProps = {
   onChange: (value: string) => void;
   onBlur: () => void;
   error: string | undefined;
-  autoComplete?: 'tel-national' | 'username';
+  autoComplete?: 'off' | 'one-time-code' | 'tel-national' | 'username';
+  preventAutoFill?: boolean;
   compact?: boolean;
 };
 
@@ -21,6 +22,7 @@ export const MobileNumberInput = ({
   onBlur,
   error,
   autoComplete = 'tel-national',
+  preventAutoFill = false,
   compact = false,
 }: MobileNumberInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,8 +69,12 @@ export const MobileNumberInput = ({
             id={id}
             className="absolute inset-0 h-full w-full cursor-text opacity-0"
             type="tel"
+            name={preventAutoFill ? 'login-mobile-entry' : undefined}
             inputMode="numeric"
             autoComplete={autoComplete}
+            data-1p-ignore={preventAutoFill ? 'true' : undefined}
+            data-bwignore={preventAutoFill ? 'true' : undefined}
+            data-lpignore={preventAutoFill ? 'true' : undefined}
             maxLength={MOBILE_DIGITS}
             value={value}
             onChange={(event) =>

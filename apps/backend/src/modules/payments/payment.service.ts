@@ -174,11 +174,24 @@ export const listPayments = async (query: PaymentListQuery, recorderId?: string)
     },
   };
 };
-export const reversePayment = async (id: string, reason: string, userId: string) =>
+export const reversePayment = async (
+  id: string,
+  reason: string,
+  userId: string,
+  enforceRecorder = false,
+) =>
   prisma.$transaction(
     async (transaction) => {
-      const payment = await transaction.customerPayment.findUnique({ where: { id }, include });
-      if (!payment) throw new AppError(404, 'PAYMENT_NOT_FOUND', 'Payment was not found');
+      const payment = await transaction.customerPayment.findFirst({
+        where: { id, ...(enforceRecorder ? { recordedById: userId } : {}) },
+        include,
+      });
+      if (!payment)
+        throw new AppError(
+          404,
+          'PAYMENT_NOT_REVERSIBLE',
+          'This payment is not available in your recorded payments',
+        );
       if (payment.status === PaymentStatus.REVERSED)
         throw new AppError(409, 'PAYMENT_ALREADY_REVERSED', 'Payment is already reversed');
       const updated = await transaction.customerPayment.update({

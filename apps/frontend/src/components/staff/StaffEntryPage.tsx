@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   CreateCustomerSchema,
   CreateGradingEntrySchema,
@@ -65,6 +65,7 @@ export const StaffEntryPage = () => {
   const [rate, setRate] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [paymentEdited, setPaymentEdited] = useState(false);
+  const paymentBeforeDue = useRef({ amount: '', edited: false });
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ONLINE' | 'DUE'>('CASH');
   const [paymentAccountId, setPaymentAccountId] = useState('');
   const [waiveSmallBalance, setWaiveSmallBalance] = useState(false);
@@ -125,6 +126,7 @@ export const StaffEntryPage = () => {
     setRate('');
     setPaidAmount('');
     setPaymentEdited(false);
+    paymentBeforeDue.current = { amount: '', edited: false };
     setPaymentMethod('CASH');
     setPaymentAccountId('');
     setWaiveSmallBalance(false);
@@ -608,7 +610,7 @@ export const StaffEntryPage = () => {
               <div className="mt-1 grid grid-cols-3 gap-2">
                 {(['CASH', 'ONLINE', 'DUE'] as const).map((item) => (
                   <label
-                    className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold ${paymentMethod === item ? 'border-brand-700 bg-brand-50 text-brand-800' : ''}`}
+                    className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold transition ${paymentMethod === item ? 'border-brand-800 bg-brand-800 text-white shadow-sm ring-2 ring-brand-200' : 'border-stone-300 bg-white text-stone-700 hover:border-brand-400 hover:bg-brand-50'}`}
                     key={item}
                   >
                     <input
@@ -616,6 +618,13 @@ export const StaffEntryPage = () => {
                       type="radio"
                       checked={paymentMethod === item}
                       onChange={() => {
+                        if (item === paymentMethod) return;
+                        if (item === 'DUE') {
+                          paymentBeforeDue.current = { amount: paidAmount, edited: paymentEdited };
+                        } else if (paymentMethod === 'DUE') {
+                          setPaidAmount(paymentBeforeDue.current.amount);
+                          setPaymentEdited(paymentBeforeDue.current.edited);
+                        }
                         setPaymentMethod(item);
                         if (item === 'DUE') {
                           setPaidAmount('0.00');

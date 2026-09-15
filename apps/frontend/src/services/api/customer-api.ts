@@ -1,6 +1,7 @@
 import {
   CreateCustomerSchema,
   CustomerGradingDueResponseSchema,
+  CustomerDuesResponseSchema,
   CustomerListResponseSchema,
   CustomerResponseSchema,
   UpdateCustomerSchema,
@@ -28,6 +29,11 @@ export const customerApi = baseApi.injectEndpoints({
       query: (id) => `/customers/${id}/grading-due`,
       transformResponse: (response: unknown) =>
         CustomerGradingDueResponseSchema.parse(response).totalDue,
+      providesTags: (_result, _error, id) => [{ type: 'Grading', id: `DUE-${id}` }],
+    }),
+    getCustomerDues: builder.query<ReturnType<typeof CustomerDuesResponseSchema.parse>, string>({
+      query: (id) => `/customers/${id}/dues`,
+      transformResponse: (response: unknown) => CustomerDuesResponseSchema.parse(response),
       providesTags: (_result, _error, id) => [{ type: 'Grading', id: `DUE-${id}` }],
     }),
     getCustomers: builder.query<CustomerListResponse, CustomerListParams>({
@@ -82,6 +88,7 @@ export const customerApi = baseApi.injectEndpoints({
 export const {
   useGetCustomerQuery,
   useGetCustomerGradingDueQuery,
+  useGetCustomerDuesQuery,
   useGetCustomersQuery,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,

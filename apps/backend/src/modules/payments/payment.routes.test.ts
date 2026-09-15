@@ -43,4 +43,18 @@ describe('payment routes', () => {
     });
     expect(response.status).toBe(400);
   });
+  it('allows staff to reverse a payment while enforcing recorder ownership', async () => {
+    const paymentId = '4ea4f8dc-9f72-4fb3-99a4-fdfc40ced5ea';
+    mocks.reversePayment.mockResolvedValue({ id: paymentId, status: 'REVERSED' });
+    const response = await request(createApp())
+      .post(`/api/v1/payments/${paymentId}/reverse`)
+      .send({ reason: 'Wrong amount entered' });
+    expect(response.status).toBe(200);
+    expect(mocks.reversePayment).toHaveBeenCalledWith(
+      paymentId,
+      'Wrong amount entered',
+      'dc2e08c4-3ebc-4273-a846-ece725b4133f',
+      true,
+    );
+  });
 });
