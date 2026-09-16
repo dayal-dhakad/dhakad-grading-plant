@@ -67,6 +67,7 @@ enum LedgerEntryType {
   SEED_SALE_CHARGE
   SEED_SALE_PAYMENT
   SEED_SALE_REVERSAL
+  SEED_SALE_ADJUSTMENT
 }
 
 enum NotificationChannel {
@@ -112,6 +113,7 @@ model User {
   seedStockMovements      SeedStockMovement[]
   seedBillsCreated        SeedBill[]             @relation("SeedBillCreatedBy")
   seedBillsCancelled      SeedBill[]             @relation("SeedBillCancelledBy")
+  seedBillRevisions       SeedBillRevision[]
   paymentAccountsCreated  PaymentAccount[]
   notificationsCreated    Notification[]
 
@@ -446,6 +448,7 @@ model SeedBill {
   cancellationReason String?               @map("cancellation_reason") @db.VarChar(300)
   createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   items              SeedBillItem[]
+  revisions          SeedBillRevision[]
   ledgerEntries      CustomerLedgerEntry[]
 
   @@index([customerId, serviceDate])
@@ -470,11 +473,30 @@ model SeedBillItem {
   grossAmount     Decimal             @map("gross_amount") @db.Decimal(12, 2)
   discountAmount  Decimal             @map("discount_amount") @db.Decimal(12, 2)
   netAmount       Decimal             @map("net_amount") @db.Decimal(12, 2)
+  isCurrent       Boolean             @default(true) @map("is_current")
   stockMovements  SeedStockMovement[]
 
   @@index([seedBillId])
+  @@index([seedBillId, isCurrent])
   @@index([productId])
   @@map("seed_bill_items")
+}
+
+model SeedBillRevision {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seedBillId     String   @map("seed_bill_id") @db.Uuid
+  seedBill       SeedBill @relation(fields: [seedBillId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  revisionNumber Int      @map("revision_number")
+  reason         String   @db.VarChar(300)
+  before         Json     @db.JsonB
+  after          Json     @db.JsonB
+  revisedById    String   @map("revised_by_id") @db.Uuid
+  revisedBy      User     @relation(fields: [revisedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([seedBillId, revisionNumber])
+  @@index([revisedById])
+  @@map("seed_bill_revisions")
 }
 
 model ProductVariant {

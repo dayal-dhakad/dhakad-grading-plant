@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type FormEvent } from 'react';
+import { useDeferredValue, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ReviseGradingEntrySchema, type GradingEntry } from '@dhakad/shared';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
@@ -40,6 +40,7 @@ const EditForm = ({ entry }: { entry: GradingEntry }) => {
   );
   const [rate, setRate] = useState(displayDecimal(entry.rate));
   const [paidAmount, setPaidAmount] = useState(displayDecimal(entry.initialPaidAmount));
+  const paymentBeforeDue = useRef<string | null>(null);
   const [waiveSmallBalance, setWaiveSmallBalance] = useState(Number(entry.waivedAmount) > 0);
   const [paymentMethod, setPaymentMethod] = useState(entry.paymentMethod);
   const [paymentAccountId, setPaymentAccountId] = useState(entry.paymentAccount?.id ?? '');
@@ -254,7 +255,7 @@ const EditForm = ({ entry }: { entry: GradingEntry }) => {
         <div className="mt-1 grid grid-cols-3 gap-2">
           {(['CASH', 'ONLINE', 'DUE'] as const).map((item) => (
             <label
-              className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold ${paymentMethod === item ? 'border-brand-700 bg-brand-50 text-brand-800' : ''}`}
+              className={`grid min-h-10 cursor-pointer place-items-center rounded-lg border text-sm font-bold transition ${paymentMethod === item ? 'border-brand-800 bg-brand-800 text-white shadow-sm ring-2 ring-brand-200' : 'border-stone-300 bg-white text-stone-700 hover:border-brand-400 hover:bg-brand-50'}`}
               key={item}
             >
               <input
@@ -262,6 +263,12 @@ const EditForm = ({ entry }: { entry: GradingEntry }) => {
                 type="radio"
                 checked={paymentMethod === item}
                 onChange={() => {
+                  if (item === paymentMethod) return;
+                  if (item === 'DUE') {
+                    paymentBeforeDue.current = paidAmount;
+                  } else if (paymentMethod === 'DUE') {
+                    setPaidAmount(paymentBeforeDue.current ?? total);
+                  }
                   setPaymentMethod(item);
                   if (item === 'DUE') {
                     setPaidAmount('0.00');

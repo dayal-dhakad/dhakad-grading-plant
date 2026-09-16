@@ -22,6 +22,21 @@ Status: implementation and verification complete on 2026-09-10.
   the bill's remaining ledger effect without deleting financial or stock history.
 - Added compact, paginated seed-bill tables to both staff and administrator entry workspaces.
 
+## Subsequent seed-bill edit enhancement
+
+- Staff may revise their own active seed bills with a mandatory reason. Administrators and the
+  owning staff member can inspect before/after revision history.
+- Revised lines remain in the database as historical rows; current lines are explicitly marked.
+  Stock changes use compensating `SALE_REVERSAL` and new `SALE` movements. Customer balance
+  changes use append-only `SEED_SALE_ADJUSTMENT` ledger entries. These writes and the revision
+  snapshot commit in one serializable transaction.
+- Revision checks stock after returning the bill's current quantities, so staff can correct a
+  quantity without needing duplicate stock on hand. Cancelled bills cannot be revised.
+- Added `GET /api/v1/seed-bills/:id`, `PUT /api/v1/seed-bills/:id`, and
+  `GET /api/v1/seed-bills/:id/revisions` with staff ownership checks on reads and writes.
+- Migration `20260916210000_seed_bill_revisions` adds revision history and current-line markers
+  without deleting existing bill lines or stock movements.
+
 ## API
 
 - `GET /api/v1/seed-bills`

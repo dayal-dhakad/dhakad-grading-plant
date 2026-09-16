@@ -81,10 +81,13 @@ export {
 export {
   CancelSeedBillSchema,
   CreateSeedBillSchema,
+  ReviseSeedBillSchema,
   SeedBillListResponseSchema,
+  SeedBillRevisionListResponseSchema,
   SeedBillResponseSchema,
   SeedBillSchema,
   type CreateSeedBillInput,
+  type ReviseSeedBillInput,
   type SeedBill,
 } from './seed-billing.js';
 export {

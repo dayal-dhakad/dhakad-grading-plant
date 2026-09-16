@@ -17,6 +17,8 @@ import { SeedManagementPage } from '@/components/admin/SeedManagementPage';
 import { SeedDetailPage } from '@/components/admin/SeedDetailPage';
 import { PaymentAccountsPage } from '@/components/admin/PaymentAccountsPage';
 import { ReportsPage } from '@/components/admin/ReportsPage';
+import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
+import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 
 const SessionGate = () => {
@@ -79,12 +81,18 @@ export const AppRouter = () => (
         <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
         <Route path="admin/reports" element={<ReportsPage />} />
         <Route path="admin/entries/:id/history" element={<GradingRevisionHistoryPage admin />} />
+        <Route
+          path="admin/seed-bills/:id/history"
+          element={<SeedBillRevisionHistoryPage admin />}
+        />
       </Route>
       <Route element={<RoleGate role="STAFF" />}>
         <Route path="staff/new-entry" element={<StaffEntryPage />} />
         <Route path="staff/entries" element={<MyEntriesPage />} />
         <Route path="staff/entries/:id/edit" element={<EditGradingEntryPage />} />
         <Route path="staff/entries/:id/history" element={<GradingRevisionHistoryPage />} />
+        <Route path="staff/seed-bills/:id/edit" element={<EditSeedBillPage />} />
+        <Route path="staff/seed-bills/:id/history" element={<SeedBillRevisionHistoryPage />} />
         <Route path="staff/payments" element={<PaymentsPage />} />
       </Route>
     </Route>

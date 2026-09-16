@@ -2,7 +2,10 @@ import {
   CreateSeedBillSchema,
   SeedBillListResponseSchema,
   SeedBillResponseSchema,
+  SeedBillRevisionListResponseSchema,
+  ReviseSeedBillSchema,
   type CreateSeedBillInput,
+  type ReviseSeedBillInput,
 } from '@dhakad/shared';
 import { baseApi } from './base-api';
 export const seedBillingApi = baseApi.injectEndpoints({
@@ -12,6 +15,8 @@ export const seedBillingApi = baseApi.injectEndpoints({
       {
         status: 'active' | 'cancelled' | 'all';
         customerId?: string;
+        from?: string;
+        to?: string;
         page: number;
         pageSize: number;
       }
@@ -19,6 +24,41 @@ export const seedBillingApi = baseApi.injectEndpoints({
       query: (params) => ({ url: '/seed-bills', params }),
       transformResponse: (v: unknown) => SeedBillListResponseSchema.parse(v),
       providesTags: [{ type: 'SeedBill', id: 'LIST' }],
+    }),
+    getSeedBill: b.query<ReturnType<typeof SeedBillResponseSchema.parse>['bill'], string>({
+      query: (id) => `/seed-bills/${id}`,
+      transformResponse: (v: unknown) => SeedBillResponseSchema.parse(v).bill,
+      providesTags: (_result, _error, id) => [{ type: 'SeedBill', id }],
+    }),
+    getSeedBillRevisions: b.query<
+      ReturnType<typeof SeedBillRevisionListResponseSchema.parse>['revisions'],
+      string
+    >({
+      query: (id) => `/seed-bills/${id}/revisions`,
+      transformResponse: (v: unknown) => SeedBillRevisionListResponseSchema.parse(v).revisions,
+      providesTags: (_result, _error, id) => [{ type: 'SeedBill', id: `REVISIONS-${id}` }],
+    }),
+    reviseSeedBill: b.mutation<
+      ReturnType<typeof SeedBillResponseSchema.parse>['bill'],
+      { id: string; input: ReviseSeedBillInput; previousCustomerId: string }
+    >({
+      query: ({ id, input }) => ({
+        url: `/seed-bills/${id}`,
+        method: 'PUT',
+        body: ReviseSeedBillSchema.parse(input),
+      }),
+      transformResponse: (v: unknown) => SeedBillResponseSchema.parse(v).bill,
+      invalidatesTags: (bill, _error, { id, previousCustomerId }) => [
+        { type: 'SeedBill', id },
+        { type: 'SeedBill', id: 'LIST' },
+        { type: 'SeedBill', id: `REVISIONS-${id}` },
+        { type: 'SeedProduct', id: 'LIST' },
+        { type: 'Ledger', id: 'LIST' },
+        { type: 'Ledger', id: previousCustomerId },
+        { type: 'Grading', id: `DUE-${previousCustomerId}` },
+        ...(bill ? [{ type: 'Ledger' as const, id: bill.customer.id }] : []),
+        ...(bill ? [{ type: 'Grading' as const, id: `DUE-${bill.customer.id}` }] : []),
+      ],
     }),
     createSeedBill: b.mutation<
       ReturnType<typeof SeedBillResponseSchema.parse>['bill'],
@@ -62,5 +102,11 @@ export const seedBillingApi = baseApi.injectEndpoints({
     }),
   }),
 });
-export const { useGetSeedBillsQuery, useCreateSeedBillMutation, useCancelSeedBillMutation } =
-  seedBillingApi;
+export const {
+  useGetSeedBillsQuery,
+  useGetSeedBillQuery,
+  useGetSeedBillRevisionsQuery,
+  useReviseSeedBillMutation,
+  useCreateSeedBillMutation,
+  useCancelSeedBillMutation,
+} = seedBillingApi;

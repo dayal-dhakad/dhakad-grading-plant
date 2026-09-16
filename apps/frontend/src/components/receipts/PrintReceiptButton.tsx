@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { GradingEntry, Payment, SeedBill } from '@dhakad/shared';
 import { PrintIcon } from '../table/TableActions';
-import { tableActionClass } from '../table/table-action-styles';
+import { tableActionClass, tableIconActionClass } from '../table/table-action-styles';
 
-type Props =
+type Props = (
   | { kind: 'grading'; record: GradingEntry }
   | { kind: 'seed'; record: SeedBill }
-  | { kind: 'payment'; record: Payment };
+  | { kind: 'payment'; record: Payment }
+) & { iconOnly?: boolean };
 
 const number = (prefix: string, value: number) => `${prefix}-${String(value).padStart(6, '0')}`;
 const mode = (value: string) => (value === 'CASH' ? 'Cash' : value === 'ONLINE' ? 'Online' : 'Due');
@@ -28,9 +29,15 @@ export const PrintReceiptButton = (props: Props) => {
         : 'Payment receipt';
   return (
     <>
-      <button className={tableActionClass('brand')} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className={props.iconOnly ? tableIconActionClass('brand') : tableActionClass('brand')}
+        aria-label={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
+        title={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
+        onClick={() => setOpen(true)}
+      >
         <PrintIcon />
-        Print
+        {!props.iconOnly && 'Print'}
       </button>
       {open && (
         <div className="receipt-overlay fixed inset-0 z-50 overflow-y-auto bg-stone-950/55 p-3 sm:p-6">

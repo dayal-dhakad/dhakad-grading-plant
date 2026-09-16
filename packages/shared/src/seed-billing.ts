@@ -29,6 +29,12 @@ export const CreateSeedBillSchema = z
     notes: z.string().trim().max(500).optional(),
   })
   .superRefine((value, context) => {
+    if (value.paymentMethod === 'DUE' && Number(value.paidAmount) > 0)
+      context.addIssue({
+        code: 'custom',
+        path: ['paidAmount'],
+        message: 'Due bills cannot include a payment',
+      });
     if (new Set(value.items.map((item) => item.productId)).size !== value.items.length)
       context.addIssue({ code: 'custom', path: ['items'], message: 'Add each seed only once' });
     for (const [index, item] of value.items.entries()) {
@@ -53,6 +59,9 @@ export const CreateSeedBillSchema = z
     }
   });
 export const CancelSeedBillSchema = z.strictObject({ reason: z.string().trim().min(1).max(300) });
+export const ReviseSeedBillSchema = CreateSeedBillSchema.safeExtend({
+  reason: z.string().trim().min(1).max(300),
+});
 const user = z.strictObject({ id: z.uuid(), name: z.string() });
 const customer = z.strictObject({ id: z.uuid(), name: z.string(), mobile: z.string() });
 export const SeedBillSchema = z.strictObject({
@@ -90,6 +99,19 @@ export const SeedBillSchema = z.strictObject({
   ),
 });
 export const SeedBillResponseSchema = z.strictObject({ bill: SeedBillSchema });
+export const SeedBillRevisionListResponseSchema = z.strictObject({
+  revisions: z.array(
+    z.strictObject({
+      id: z.uuid(),
+      revisionNumber: z.number().int().positive(),
+      reason: z.string(),
+      before: z.unknown(),
+      after: z.unknown(),
+      revisedBy: user,
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+});
 export const SeedBillListResponseSchema = z.strictObject({
   bills: z.array(SeedBillSchema),
   pagination: z.strictObject({
@@ -100,4 +122,5 @@ export const SeedBillListResponseSchema = z.strictObject({
   }),
 });
 export type CreateSeedBillInput = z.infer<typeof CreateSeedBillSchema>;
+export type ReviseSeedBillInput = z.infer<typeof ReviseSeedBillSchema>;
 export type SeedBill = z.infer<typeof SeedBillSchema>;

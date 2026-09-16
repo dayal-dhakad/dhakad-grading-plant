@@ -23,6 +23,7 @@ The primary users work in a local/village business environment. Optimize for lar
   scanning remains fast without increasing row height. Pagination belongs inside the table panel,
   remains visible on single-page results, and provides 10, 20, and 50 row-count options.
 - Selecting a customer or staff name opens a dedicated detail page with its own route.
+- Grading and seed entry tables show a separate service-date column with the recorded date beneath it, support inclusive service-date filters before pagination, and use labelled icon-only row actions.
 - Do not expand customer or staff details inline below a table row.
 - Dedicated detail pages must support browser/app back navigation to the originating list.
 - Admin and staff use separate role-specific navigation and landing experiences while continuing to share the same React application.
@@ -54,6 +55,7 @@ The primary users work in a local/village business environment. Optimize for lar
 - After a grading or seed entry is saved successfully, the complete entry form resets to defaults
   and the saved record number appears in a temporary success toast instead of an inline banner.
 - Staff may edit their own entries only through a reason-required revision flow. Original values and every revision must remain auditable; edits must not silently replace financial history.
+- Grading and seed edit forms restore the pre-Due payment amount when switching back to Cash or Online; an originally Due-only bill defaults to its current calculated total. The selected payment mode uses a high-contrast filled state.
 
 ## Confirmed role workspaces
 

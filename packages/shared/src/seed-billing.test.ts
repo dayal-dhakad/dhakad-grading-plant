@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateSeedBillSchema } from './seed-billing.js';
+import { CreateSeedBillSchema, ReviseSeedBillSchema } from './seed-billing.js';
 
 const valid = {
   customerId: '4ea4f8dc-9f72-4fb3-99a4-fdfc40ced5ea',
@@ -50,6 +50,22 @@ describe('seed billing contract', () => {
         ...valid,
         items: [{ ...valid.items[0], ratePerKg: '0' }],
       }).success,
+    ).toBe(false);
+  });
+  it('requires a reason and retains all bill validation for revisions', () => {
+    expect(
+      ReviseSeedBillSchema.safeParse({ ...valid, reason: 'Corrected seed quantity' }).success,
+    ).toBe(true);
+    expect(ReviseSeedBillSchema.safeParse({ ...valid, reason: ' ' }).success).toBe(false);
+    expect(
+      ReviseSeedBillSchema.safeParse({ ...valid, reason: 'Correction', items: [] }).success,
+    ).toBe(false);
+  });
+  it('rejects a payment recorded under Due for creation and revision', () => {
+    expect(CreateSeedBillSchema.safeParse({ ...valid, paymentMethod: 'DUE' }).success).toBe(false);
+    expect(
+      ReviseSeedBillSchema.safeParse({ ...valid, paymentMethod: 'DUE', reason: 'Correction' })
+        .success,
     ).toBe(false);
   });
 });

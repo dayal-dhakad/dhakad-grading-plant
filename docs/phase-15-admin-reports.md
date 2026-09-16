@@ -14,9 +14,20 @@ templates are not currently available. Its delivery smoke test remains a product
   sales, payments, and a separate cancellation count.
 - Collection reporting combines payments captured with grading entries, seed bills, and standalone
   customer payments without counting reversed or cancelled transactions as active collections.
+- The overview and CSV export show total waived across active grading entries, active seed bills,
+  and active standalone customer payments. Grading and seed waivers follow the selected service
+  dates; standalone payment waivers follow the selected UTC creation dates.
 - Collections are split by cash, online, receiving account, and staff member.
-- Current customer dues use the authoritative append-oriented customer ledger and show the 50
-  highest positive balances.
+- Collections with a positive paid amount but a `DUE` payment method are shown separately as
+  "mode needs review", with links to the affected records. They remain in total collected but
+  are not guessed into cash or online. New grading and seed inputs reject this combination.
+- The report shows collected-by-source and collected-by-mode breakdowns, along with grading,
+  seed, and standalone-payment waiver components. Total billed is grading charges plus seed net
+  sales for the selected service dates. Current customer dues use the authoritative
+  append-oriented customer ledger and show every positive balance.
+- Current dues and stock are all-time balances, while grading and seed activity uses selected
+  service dates and standalone payments use selected UTC creation dates. These totals are not
+  expected to reconcile by subtracting only the selected-period activity.
 - Current seed stock is derived from append-oriented stock movements.
 - Reports can be exported as UTF-8 CSV from the validated API response.
 

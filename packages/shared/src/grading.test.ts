@@ -22,6 +22,15 @@ describe('grading contracts', () => {
     expect(result.paymentMethod).toBe('DUE');
     expect(result.paidAmount).toBe('0.00');
   });
+  it('rejects a payment recorded under Due for creation and revision', () => {
+    expect(CreateGradingEntrySchema.safeParse({ ...valid, paymentMethod: 'DUE' }).success).toBe(
+      false,
+    );
+    expect(
+      ReviseGradingEntrySchema.safeParse({ ...valid, paymentMethod: 'DUE', reason: 'Correction' })
+        .success,
+    ).toBe(false);
+  });
   it('accepts an explicit small-balance waiver choice', () => {
     expect(
       CreateGradingEntrySchema.parse({ ...valid, paidAmount: '60', waiveSmallBalance: true })

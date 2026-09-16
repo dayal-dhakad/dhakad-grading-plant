@@ -10,20 +10,29 @@ const decimal = (label: string, allowZero = false) =>
 
 export const PaymentMethodSchema = z.enum(['CASH', 'ONLINE', 'DUE']);
 export const GradingQuantityUnitSchema = z.enum(['QUINTAL', 'KG']);
-export const CreateGradingEntrySchema = z.strictObject({
-  customerId: z.uuid(),
-  cropId: z.uuid(),
-  quantity: decimal('Quantity'),
-  quantityUnit: GradingQuantityUnitSchema.optional(),
-  rate: decimal('Rate').optional(),
-  paidAmount: decimal('Amount paid', true),
-  waiveSmallBalance: z.boolean().optional().default(false),
-  paymentMethod: PaymentMethodSchema,
-  paymentAccountId: z.uuid().nullable().optional(),
-  serviceDate: z.iso.date(),
-  notes: z.string().trim().max(500, 'Notes must not exceed 500 characters').optional(),
-});
-export const ReviseGradingEntrySchema = CreateGradingEntrySchema.extend({
+export const CreateGradingEntrySchema = z
+  .strictObject({
+    customerId: z.uuid(),
+    cropId: z.uuid(),
+    quantity: decimal('Quantity'),
+    quantityUnit: GradingQuantityUnitSchema.optional(),
+    rate: decimal('Rate').optional(),
+    paidAmount: decimal('Amount paid', true),
+    waiveSmallBalance: z.boolean().optional().default(false),
+    paymentMethod: PaymentMethodSchema,
+    paymentAccountId: z.uuid().nullable().optional(),
+    serviceDate: z.iso.date(),
+    notes: z.string().trim().max(500, 'Notes must not exceed 500 characters').optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.paymentMethod === 'DUE' && Number(value.paidAmount) > 0)
+      context.addIssue({
+        code: 'custom',
+        path: ['paidAmount'],
+        message: 'Due entries cannot include a payment',
+      });
+  });
+export const ReviseGradingEntrySchema = CreateGradingEntrySchema.safeExtend({
   reason: z.string().trim().min(3, 'Please provide an edit reason').max(300),
 });
 export const GradingEntrySchema = z.strictObject({

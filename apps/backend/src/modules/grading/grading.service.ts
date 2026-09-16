@@ -89,6 +89,14 @@ export const getGradingReferences = async () => ({
 
 export const listGradingEntries = async (query: GradingListQuery, creatorId?: string) => {
   const where: Prisma.GradingEntryWhereInput = {
+    ...(query.from || query.to
+      ? {
+          serviceDate: {
+            ...(query.from ? { gte: new Date(`${query.from}T00:00:00.000Z`) } : {}),
+            ...(query.to ? { lte: new Date(`${query.to}T00:00:00.000Z`) } : {}),
+          },
+        }
+      : {}),
     ...(query.status === 'all'
       ? {}
       : { status: query.status === 'active' ? GradingStatus.ACTIVE : GradingStatus.CANCELLED }),

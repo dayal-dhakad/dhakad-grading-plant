@@ -20,6 +20,8 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     prisma.gradingEntry.findMany({
       where: { serviceDate: serviceRange },
       select: {
+        id: true,
+        entryNumber: true,
         status: true,
         quantity: true,
         calculatedAmount: true,
@@ -33,22 +35,28 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     prisma.seedBill.findMany({
       where: { serviceDate: serviceRange },
       select: {
+        id: true,
+        billNumber: true,
         status: true,
         grossAmount: true,
         discountAmount: true,
         netAmount: true,
         paidAmount: true,
+        waivedAmount: true,
         paymentMethod: true,
         paymentAccountId: true,
         createdById: true,
-        items: { select: { quantityGrams: true } },
+        items: { where: { isCurrent: true }, select: { quantityGrams: true } },
       },
     }),
     prisma.customerPayment.findMany({
       where: { createdAt: createdRange },
       select: {
+        id: true,
+        receiptNumber: true,
         status: true,
         amount: true,
+        waivedAmount: true,
         paymentMethod: true,
         paymentAccountId: true,
         recordedById: true,
@@ -69,6 +77,37 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
   const activeGrading = grading.filter((row) => row.status === 'ACTIVE');
   const activeSeeds = seedBills.filter((row) => row.status === 'ACTIVE');
   const activePayments = payments.filter((row) => row.status === 'ACTIVE');
+  const unclassifiedRecords = [
+    ...activeGrading
+      .filter((row) => row.paymentMethod === 'DUE' && row.paidAmount.gt(0))
+      .map((row) => ({
+        kind: 'grading' as const,
+        id: row.id,
+        number: row.entryNumber,
+        amount: money(row.paidAmount),
+      })),
+    ...activeSeeds
+      .filter((row) => row.paymentMethod === 'DUE' && row.paidAmount.gt(0))
+      .map((row) => ({
+        kind: 'seed' as const,
+        id: row.id,
+        number: row.billNumber,
+        amount: money(row.paidAmount),
+      })),
+    ...activePayments
+      .filter((row) => row.paymentMethod === 'DUE' && row.amount.gt(0))
+      .map((row) => ({
+        kind: 'payment' as const,
+        id: row.id,
+        number: row.receiptNumber,
+        amount: money(row.amount),
+      })),
+  ];
+  const totalWaived = sum([
+    ...activeGrading.map((row) => row.waivedAmount),
+    ...activeSeeds.map((row) => row.waivedAmount),
+    ...activePayments.map((row) => row.waivedAmount),
+  ]);
   const dueRows = dues.filter((row) => (row._sum?.amount ?? zero()).gt(0));
   const [customers, products, accounts] = await prisma.$transaction([
     prisma.customer.findMany({
@@ -110,6 +149,13 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
   ];
   return {
     period: query,
+    totalBilled: money(
+      sum([
+        ...activeGrading.map((row) => row.calculatedAmount),
+        ...activeSeeds.map((row) => row.netAmount),
+      ]),
+    ),
+    totalWaived: money(totalWaived),
     grading: {
       count: activeGrading.length,
       quantityQuintals: sum(activeGrading.map((row) => row.quantity)).toFixed(2),
@@ -124,6 +170,7 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       discount: money(sum(activeSeeds.map((row) => row.discountAmount))),
       net: money(sum(activeSeeds.map((row) => row.netAmount))),
       paid: money(sum(activeSeeds.map((row) => row.paidAmount))),
+      waived: money(sum(activeSeeds.map((row) => row.waivedAmount))),
       quantityKg: new Prisma.Decimal(
         activeSeeds
           .reduce(
@@ -142,11 +189,16 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
         count: activePayments.length,
         amount: money(sum(activePayments.map((row) => row.amount))),
       },
+      standaloneWaived: money(sum(activePayments.map((row) => row.waivedAmount))),
       totalCollected: money(sum(collections.map((row) => row.amount))),
       cash: money(sum(collections.filter((row) => row.method === 'CASH').map((row) => row.amount))),
       online: money(
         sum(collections.filter((row) => row.method === 'ONLINE').map((row) => row.amount)),
       ),
+      unclassified: money(
+        sum(collections.filter((row) => row.method === 'DUE').map((row) => row.amount)),
+      ),
+      unclassifiedRecords,
       reversedCount: payments.length - activePayments.length,
     },
     dues: {
@@ -156,8 +208,7 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
           ...customers.find((customer) => customer.id === row.customerId)!,
           amount: money(row._sum?.amount ?? zero()),
         }))
-        .sort((a, b) => Number(b.amount) - Number(a.amount))
-        .slice(0, 50),
+        .sort((a, b) => Number(b.amount) - Number(a.amount)),
     },
     paymentAccounts: accountIds.map((id) => {
       const rows = collections.filter((row) => row.method === 'ONLINE' && row.accountId === id);
