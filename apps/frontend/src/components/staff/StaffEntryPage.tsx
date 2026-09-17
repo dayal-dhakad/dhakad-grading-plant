@@ -11,6 +11,7 @@ import {
   useGetCustomersQuery,
 } from '@/services/api/customer-api';
 import { MobileNumberInput } from '@/components/form/MobileNumberInput';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { SuccessToast } from '@/components/feedback/SuccessToast';
 import {
   useCreateGradingEntryMutation,
@@ -558,7 +559,7 @@ export const StaffEntryPage = () => {
             </div>
             <label className="field-label order-3">
               Rate (₹/quintal) *
-              <input
+              <MoneyInput
                 className="compact-field mt-1"
                 inputMode="decimal"
                 value={rate}
@@ -574,12 +575,13 @@ export const StaffEntryPage = () => {
             </div>
             <label className="field-label order-7">
               Amount paid *
-              <span className="mt-1 flex min-h-14 items-center rounded-xl border-2 border-brand-700 bg-brand-50 px-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-100">
+              <span className={`mt-1 flex min-h-14 items-center rounded-xl border-2 px-4 shadow-sm ${paymentMethod === 'DUE' ? 'border-stone-300 bg-stone-100' : 'border-brand-700 bg-brand-50 focus-within:ring-2 focus-within:ring-brand-100'}`}>
                 <span className="text-xl font-black text-brand-900">₹</span>
-                <input
-                  className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none"
+                <MoneyInput
+                  className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none disabled:cursor-not-allowed"
                   inputMode="decimal"
-                  value={displayedPaid}
+                  disabled={paymentMethod === 'DUE'}
+                  value={paymentMethod === 'DUE' ? '0.00' : displayedPaid}
                   onChange={(e) => {
                     setPaidAmount(e.target.value);
                     setPaymentEdited(true);

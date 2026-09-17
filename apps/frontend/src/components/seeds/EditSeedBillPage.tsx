@@ -1,6 +1,7 @@
 import { useDeferredValue, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ReviseSeedBillSchema, type SeedBill } from '@dhakad/shared';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetSeedProductsQuery } from '@/services/api/seed-management-api';
 import { useGetSeedBillQuery, useReviseSeedBillMutation } from '@/services/api/seed-billing-api';
@@ -215,7 +216,7 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
                 </label>
                 <label className="field-label">
                   Rate / kg *
-                  <input
+                  <MoneyInput
                     className="compact-field mt-1"
                     inputMode="decimal"
                     value={line.ratePerKg}
@@ -241,7 +242,7 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
                 </label>
                 <label className="field-label">
                   Discount value
-                  <input
+                  <MoneyInput
                     className="compact-field mt-1"
                     inputMode="decimal"
                     value={line.discountValue}
@@ -279,10 +280,11 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
         </label>
         <label className="field-label">
           Amount paid *
-          <input
-            className="compact-field mt-1"
+          <MoneyInput
+            className="compact-field mt-1 disabled:cursor-not-allowed disabled:bg-stone-100"
             inputMode="decimal"
-            value={paidAmount}
+            disabled={paymentMethod === 'DUE'}
+            value={paymentMethod === 'DUE' ? '0.00' : paidAmount}
             onChange={(event) => {
               setPaidAmount(event.target.value);
               setWaiveSmallBalance(false);

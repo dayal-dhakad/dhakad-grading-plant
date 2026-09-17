@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { CropSetting } from '@dhakad/shared';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import {
   useCreateCropSettingMutation,
   useGetCropSettingsQuery,
@@ -66,7 +67,7 @@ export const GradingSettingsPage = () => {
         </label>
         <label className="field-label">
           Cleaning rate
-          <input
+          <MoneyInput
             className="field mt-2"
             inputMode="decimal"
             value={rate}

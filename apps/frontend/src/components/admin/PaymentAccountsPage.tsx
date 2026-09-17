@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { PaymentAccount } from '@dhakad/shared';
 import QRCode from 'qrcode';
 import { ApiErrorResponseSchema } from '@/services/api/auth-api';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import {
   useCreatePaymentAccountMutation,
   useCreatePaymentQrMutation,
@@ -231,7 +232,7 @@ const QrPreview = ({ account, onClose }: { account: PaymentAccount; onClose: () 
       >
         <label className="field-label">
           Amount *
-          <input
+          <MoneyInput
             className="field mt-2"
             inputMode="decimal"
             value={amount}

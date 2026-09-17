@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useCreatePaymentMutation, useGetCustomerLedgerQuery } from '@/services/api/payment-api';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { TablePagination } from '../table/TablePagination';
 import { PaymentAccountField } from './PaymentAccountField';
 export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) => {
@@ -56,7 +57,7 @@ export const CustomerPaymentsPanel = ({ customerId }: { customerId: string }) =>
       <form className="mt-5 grid gap-4 sm:grid-cols-3" onSubmit={(event) => void submit(event)}>
         <label className="field-label">
           Payment amount
-          <input
+          <MoneyInput
             className="field mt-2"
             inputMode="decimal"
             value={amount}

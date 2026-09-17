@@ -1,5 +1,6 @@
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import type { SeedProduct } from '@dhakad/shared';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { Link } from 'react-router-dom';
 import {
   useAddSeedStockMutation,
@@ -284,7 +285,7 @@ const SeedProductForm = ({ product, onClose }: { product?: SeedProduct; onClose:
       </label>
       <label className="field-label">
         Selling rate per kg
-        <input
+        <MoneyInput
           className="compact-field mt-1"
           inputMode="decimal"
           value={rate}
@@ -305,7 +306,7 @@ const SeedProductForm = ({ product, onClose }: { product?: SeedProduct; onClose:
       </label>
       <label className="field-label">
         Discount value
-        <input
+        <MoneyInput
           className="compact-field mt-1"
           disabled={discountType === 'NONE'}
           inputMode="decimal"

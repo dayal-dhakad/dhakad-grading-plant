@@ -11,6 +11,7 @@ import {
   useGetCustomersQuery,
 } from '@/services/api/customer-api';
 import { MobileNumberInput } from '@/components/form/MobileNumberInput';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { SuccessToast } from '@/components/feedback/SuccessToast';
 import { useGetSeedProductsQuery } from '@/services/api/seed-management-api';
 import { useCreateSeedBillMutation } from '@/services/api/seed-billing-api';
@@ -597,7 +598,7 @@ export const SeedSalePage = () => {
                       </label>
                       <label className="field-label">
                         Rate (₹/kg) *
-                        <input
+                        <MoneyInput
                           className="compact-field mt-1"
                           inputMode="decimal"
                           value={line.ratePerKg}
@@ -622,7 +623,7 @@ export const SeedSalePage = () => {
                             <option value="FIXED">₹</option>
                             <option value="PERCENTAGE">%</option>
                           </select>
-                          <input
+                          <MoneyInput
                             className="compact-field min-w-0"
                             inputMode="decimal"
                             disabled={line.discountType === 'NONE'}
@@ -685,12 +686,13 @@ export const SeedSalePage = () => {
           </div>
           <label className="field-label">
             Amount paid *
-            <span className="mt-1 flex min-h-14 items-center rounded-xl border-2 border-brand-700 bg-brand-50 px-4 shadow-sm">
+            <span className={`mt-1 flex min-h-14 items-center rounded-xl border-2 px-4 shadow-sm ${paymentMethod === 'DUE' ? 'border-stone-300 bg-stone-100' : 'border-brand-700 bg-brand-50'}`}>
               <span className="text-xl font-black text-brand-900">₹</span>
-              <input
-                className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none"
+              <MoneyInput
+                className="min-w-0 flex-1 bg-transparent px-2 text-xl font-black text-brand-900 outline-none disabled:cursor-not-allowed"
                 inputMode="decimal"
-                value={displayedPaid}
+                disabled={paymentMethod === 'DUE'}
+                value={paymentMethod === 'DUE' ? '0.00' : displayedPaid}
                 onChange={(event) => {
                   setPaidAmount(event.target.value);
                   setPaymentEdited(true);

@@ -1,5 +1,6 @@
-import { useDeferredValue, useMemo, useState, type FormEvent } from 'react';
+import { useDeferredValue, useMemo, useRef, useState, type FormEvent } from 'react';
 import { CreateGradingEntrySchema } from '@dhakad/shared';
+import { MoneyInput } from '@/components/form/MoneyInput';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import {
   useCancelGradingEntryMutation,
@@ -32,6 +33,7 @@ const EntryForm = ({ close }: { close: () => void }) => {
   const [serviceDate, setServiceDate] = useState(today());
   const [notes, setNotes] = useState('');
   const [paymentEdited, setPaymentEdited] = useState(false);
+  const paymentBeforeDue = useRef({ amount: '', edited: false });
   const [message, setMessage] = useState('');
   const [create, state] = useCreateGradingEntryMutation();
   const crop = references?.crops.find((item) => item.id === cropId);
@@ -142,10 +144,10 @@ const EntryForm = ({ close }: { close: () => void }) => {
           </div>
           <label className="field-label">
             Amount paid
-            <input
-              className="field mt-2"
-              inputMode="decimal"
-              value={displayedPaidAmount}
+            <MoneyInput
+              className="field mt-2 disabled:cursor-not-allowed disabled:bg-stone-100"
+              disabled={paymentMethod === 'DUE'}
+              value={paymentMethod === 'DUE' ? '0.00' : displayedPaidAmount}
               onChange={(e) => {
                 setPaidAmount(e.target.value);
                 setPaymentEdited(true);
@@ -165,6 +167,13 @@ const EntryForm = ({ close }: { close: () => void }) => {
                     type="radio"
                     checked={paymentMethod === method}
                     onChange={() => {
+                      if (method === paymentMethod) return;
+                      if (method === 'DUE') {
+                        paymentBeforeDue.current = { amount: paidAmount, edited: paymentEdited };
+                      } else if (paymentMethod === 'DUE') {
+                        setPaidAmount(paymentBeforeDue.current.amount);
+                        setPaymentEdited(paymentBeforeDue.current.edited);
+                      }
                       setPaymentMethod(method);
                       if (method === 'DUE') {
                         setPaidAmount('0.00');

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
+import { useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
 import { useGetStaffListQuery } from '@/services/api/staff-api';
 import { useGetOverviewReportQuery } from '@/services/api/report-api';
 import { TablePagination } from './table/TablePagination';
@@ -14,6 +15,7 @@ export const DashboardPage = () => {
   const { data: staff } = useGetStaffListQuery({ status: 'active', page: 1 });
   const { data: customers } = useGetCustomersQuery({ status: 'active', page: 1 });
   const { data: entries } = useGetGradingEntriesQuery({ status: 'active', page, pageSize });
+  const { data: seedEntries } = useGetSeedBillsQuery({ status: 'active', page: 1, pageSize: 10 });
   const reportDate = new Date().toISOString().slice(0, 10);
   const {
     data: report,
@@ -38,17 +40,25 @@ export const DashboardPage = () => {
           <p className="mt-3 text-3xl font-bold">{entries?.pagination.total ?? '—'}</p>
         </article>
         <article className="card">
-          <p className="card-label">Total customer dues</p>
-          <p className="mt-3 text-3xl font-bold text-red-700">
-            {isReportLoading
-              ? '—'
-              : isReportError
-                ? 'Unavailable'
-                : `₹${report?.dues.total ?? '0.00'}`}
-          </p>
-          <p className="mt-1 text-xs text-stone-500">
-            Current balance from the full customer ledger
-          </p>
+          <p className="card-label">Active seed entries</p>
+          <p className="mt-3 text-3xl font-bold">{seedEntries?.pagination.total ?? '—'}</p>
+        </article>
+        <article className="card min-w-0 sm:col-span-2 xl:col-span-4">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div>
+              <p className="card-label">Total customer dues</p>
+              <p className="mt-1 text-xs text-stone-500">
+                Current balance from the full customer ledger
+              </p>
+            </div>
+            <p className="min-w-0 max-w-full text-2xl font-bold tabular-nums text-red-700 [overflow-wrap:anywhere] sm:text-3xl">
+              {isReportLoading
+                ? '—'
+                : isReportError
+                  ? 'Unavailable'
+                  : `₹${report?.dues.total ?? '0.00'}`}
+            </p>
+          </div>
         </article>
       </section>
       <section className="mt-7">

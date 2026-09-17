@@ -56,12 +56,15 @@ The primary users work in a local/village business environment. Optimize for lar
   and the saved record number appears in a temporary success toast instead of an inline banner.
 - Staff may edit their own entries only through a reason-required revision flow. Original values and every revision must remain auditable; edits must not silently replace financial history.
 - Grading and seed edit forms restore the pre-Due payment amount when switching back to Cash or Online; an originally Due-only bill defaults to its current calculated total. The selected payment mode uses a high-contrast filled state.
+- Selecting Due in a grading or seed entry sets Amount paid to zero and disables that field until Cash or Online is selected.
+- Editable money fields accept digits and a single decimal point with up to two decimal places.
 
 ## Confirmed role workspaces
 
 ### Administrator
 
 - Dashboard shows business summaries and recent activity appropriate to implemented modules.
+- Dashboard summary cards include active grading entries and active seed entries.
 - Staff provides a searchable, paginated staff table and administrator-only staff account creation.
 - Administrator staff-account creation opens in a modal rather than expanding above the table.
 - Each staff name links to a dedicated detail page containing account details, total entry counts, and that staff member's paginated entry history.
