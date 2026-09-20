@@ -4,7 +4,7 @@ import { ReviseSeedBillSchema, type SeedBill } from '@dhakad/shared';
 import { MoneyInput } from '@/components/form/MoneyInput';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetSeedProductsQuery } from '@/services/api/seed-management-api';
-import { useGetSeedBillQuery, useReviseSeedBillMutation } from '@/services/api/seed-billing-api';
+import { useGetSeedBillQuery, useGetSeedBillingConfigQuery, useReviseSeedBillMutation } from '@/services/api/seed-billing-api';
 import { PaymentAccountField } from '../payments/PaymentAccountField';
 
 type Line = {
@@ -34,6 +34,8 @@ const initialLines = (bill: SeedBill): Line[] =>
   }));
 
 const EditForm = ({ bill }: { bill: SeedBill }) => {
+  const { data: billingConfig } = useGetSeedBillingConfigQuery();
+  const gstRate = Number(billingConfig?.gstRate ?? 5);
   const navigate = useNavigate();
   const [customerId, setCustomerId] = useState(bill.customer.id);
   const [customerLabel, setCustomerLabel] = useState(
@@ -59,7 +61,7 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
   const [revise, state] = useReviseSeedBillMutation();
   const updateLine = (index: number, patch: Partial<Line>) =>
     setLines((current) => current.map((line, i) => (i === index ? { ...line, ...patch } : line)));
-  const approximateNet = lines.reduce((total, line) => {
+  const approximateSubtotal = lines.reduce((total, line) => {
     const kg =
       Number(line.quantity || 0) *
       (line.unit === 'GRAM' ? 0.001 : line.unit === 'QUINTAL' ? 100 : 1);
@@ -72,6 +74,8 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
           : Number(line.discountValue || 0);
     return total + Math.max(0, gross - discount);
   }, 0);
+  const approximateGst = (approximateSubtotal * gstRate) / 100;
+  const approximateTotal = approximateSubtotal + approximateGst;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setMessage('');
@@ -267,7 +271,8 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
           <p className="card-label">Estimated bill total</p>
-          <p className="mt-1 text-2xl font-bold">₹{approximateNet.toFixed(2)}</p>
+          <p className="mt-1 text-2xl font-bold">₹{approximateTotal.toFixed(2)}</p>
+          <p className="text-xs text-stone-500">Subtotal ₹{approximateSubtotal.toFixed(2)} · GST ({gstRate}%) ₹{approximateGst.toFixed(2)}</p>
         </div>
         <label className="field-label">
           Service date *
@@ -308,7 +313,7 @@ const EditForm = ({ bill }: { bill: SeedBill }) => {
                     if (mode === 'DUE') {
                       paymentBeforeDue.current = paidAmount;
                     } else if (paymentMethod === 'DUE') {
-                      setPaidAmount(paymentBeforeDue.current ?? approximateNet.toFixed(2));
+                      setPaidAmount(paymentBeforeDue.current ?? approximateTotal.toFixed(2));
                     }
                     setPaymentMethod(mode);
                     if (mode === 'DUE') {

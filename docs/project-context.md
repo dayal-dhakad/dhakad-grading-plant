@@ -17,6 +17,15 @@ The primary users work in a local/village business environment. Optimize for lar
 
 ## Confirmed interaction decisions
 
+- Grading receipts are issued under Dhakad Grading Plant. Seed invoices are issued separately under
+  RCP EXIM PRIVATE LIMITED and use the RCP EXIM invoice branding, address, IEC, support number,
+  notes, and bank details.
+- Seed invoices add GST after line discounts. The backend-authoritative rate comes from
+  `SEED_GST_RATE_PERCENT` (currently 5%); every bill snapshots its GST rate and amount so later
+  configuration changes do not rewrite financial history.
+- WhatsApp transaction notifications are enabled by default for new and existing customers; staff
+  can disable them for customers who opt out. SMS consent remains disabled by default.
+
 - Customer and staff names in lists or tables are navigation links.
 - Data tables use compact spacing inside bordered white panels. Primary identifiers, names,
   financial totals, outstanding dues, and statuses receive stronger visual emphasis so daily

@@ -8,4 +8,5 @@ coverage/
 *.tsbuildinfo
 .vite/
 apps/desktop/release/
+.tmp-invoice-preview/
 Thumbs.db

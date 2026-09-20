@@ -2,6 +2,17 @@
 
 Status: implementation complete locally on 2026-09-14; live MSG91 delivery verification pending credentials and approved templates.
 
+## Fast2SMS WhatsApp update
+
+- Fast2SMS now handles WhatsApp template delivery; MSG91 remains the SMS provider.
+- `GRADING_CREATED` maps to the approved `crop_grading_completed` template.
+- `SEED_BILL_CREATED` maps to `seed_bill_confirmation`; live delivery remains deferred until the
+  template is approved by Fast2SMS/Meta.
+- Seed confirmation messages contain a random, unguessable public receipt URL. The public endpoint
+  exposes only receipt data and does not require or grant an application session.
+- Fast2SMS configuration uses `FAST2SMS_API_KEY`, `FAST2SMS_PHONE_NUMBER_ID`, API version,
+  template-name, and template-language environment variables.
+
 ## Implemented scope
 
 - MSG91 provider adapters for SMS Flow and WhatsApp template delivery.
@@ -9,8 +20,9 @@ Status: implementation complete locally on 2026-09-14; live MSG91 delivery verif
   not roll back grading, billing, or payment transactions.
 - Automatic consent-aware notifications for grading creation/cancellation, seed-bill
   creation/cancellation, and customer payment receipt/reversal.
-- Separate SMS and WhatsApp consent flags on each customer. Existing customers default to no
-  consent and therefore cannot be messaged unexpectedly after migration.
+- Separate SMS and WhatsApp consent flags remain available on each customer. WhatsApp is enabled
+  by default for new and existing customers by the confirmed business decision; staff can disable
+  it for customers who opt out. SMS remains disabled by default.
 - Administrator customer forms record consent with an explicit reminder that the customer must
   agree first.
 - Customer detail pages support due reminders through approved SMS and WhatsApp templates, with

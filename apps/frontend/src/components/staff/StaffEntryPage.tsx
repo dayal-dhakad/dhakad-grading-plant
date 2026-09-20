@@ -19,6 +19,7 @@ import {
 } from '@/services/api/grading-api';
 import { SeedSalePage } from '../seeds/SeedSalePage';
 import { PaymentAccountField } from '../payments/PaymentAccountField';
+import { GradingInvoice } from '../receipts/GradingInvoice';
 
 const today = () => {
   const value = new Date();
@@ -221,6 +222,25 @@ export const StaffEntryPage = () => {
         <SeedSalePage />
       ) : pendingEntry && customer ? (
         <section className="draft-receipt print-receipt card mt-4 overflow-hidden p-0">
+          <div className="no-print border-b border-stone-200 bg-brand-900 px-5 py-4 text-white">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-200">Receipt preview</p>
+            <div className="mt-1 flex items-end justify-between gap-4"><h2 className="text-xl font-bold">Confirm grading entry</h2><p className="text-xs text-green-100">Not saved yet</p></div>
+          </div>
+          <GradingInvoice invoice={{
+            number: 'DRAFT',
+            statusLabel: 'Not saved yet',
+            customer,
+            serviceDate,
+            crop: references?.crops.find((item) => item.id === cropId)?.name ?? 'Crop',
+            quantity: `${billableQuantity.toFixed(2)} quintal`,
+            rate: displayDecimal(rate),
+            amount: displayDecimal(total),
+            paid: displayDecimal(displayedPaid),
+            due: displayDecimal(waiveSmallBalance ? 0 : entryDue),
+            paymentMode: paymentMethod === 'CASH' ? 'Cash' : paymentMethod === 'ONLINE' ? 'Online' : 'Due',
+            notes,
+          }} />
+          <div className="hidden">
           <div className="print-only hidden border-b-2 border-stone-900 p-5 text-center">
             <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
             <p className="mt-1 font-bold">Grading receipt</p>
@@ -309,6 +329,7 @@ export const StaffEntryPage = () => {
           )}
           <div className="print-only hidden border-t border-dashed border-stone-500 p-5 text-center text-xs">
             Please retain this receipt for your records.
+          </div>
           </div>
           <div className="no-print flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
             <button

@@ -16,7 +16,7 @@ export const CustomerSchema = z.strictObject({
   village: z.string(),
   isActive: z.boolean(),
   smsConsent: z.boolean().default(false),
-  whatsappConsent: z.boolean().default(false),
+  whatsappConsent: z.boolean().default(true),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

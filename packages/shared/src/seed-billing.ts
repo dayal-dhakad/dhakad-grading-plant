@@ -63,13 +63,18 @@ export const ReviseSeedBillSchema = CreateSeedBillSchema.safeExtend({
   reason: z.string().trim().min(1).max(300),
 });
 const user = z.strictObject({ id: z.uuid(), name: z.string() });
-const customer = z.strictObject({ id: z.uuid(), name: z.string(), mobile: z.string() });
+const customer = z.strictObject({
+  id: z.uuid(), name: z.string(), mobile: z.string(), village: z.string(), address: z.string().nullable(),
+});
 export const SeedBillSchema = z.strictObject({
   id: z.uuid(),
   billNumber: z.number().int().positive(),
   customer,
   grossAmount: z.string(),
   discountAmount: z.string(),
+  subtotalAmount: z.string(),
+  gstRate: z.string(),
+  gstAmount: z.string(),
   netAmount: z.string(),
   paidAmount: z.string(),
   dueAmount: z.string(),

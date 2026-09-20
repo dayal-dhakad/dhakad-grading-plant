@@ -14,8 +14,12 @@ import { MobileNumberInput } from '@/components/form/MobileNumberInput';
 import { MoneyInput } from '@/components/form/MoneyInput';
 import { SuccessToast } from '@/components/feedback/SuccessToast';
 import { useGetSeedProductsQuery } from '@/services/api/seed-management-api';
-import { useCreateSeedBillMutation } from '@/services/api/seed-billing-api';
+import {
+  useCreateSeedBillMutation,
+  useGetSeedBillingConfigQuery,
+} from '@/services/api/seed-billing-api';
 import { PaymentAccountField } from '../payments/PaymentAccountField';
+import { SeedInvoice } from '../receipts/SeedInvoice';
 
 type Unit = 'GRAM' | 'KILOGRAM' | 'QUINTAL';
 type Discount = 'NONE' | 'FIXED' | 'PERCENTAGE';
@@ -54,6 +58,8 @@ const lineTotals = (line: Line) => {
 };
 
 export const SeedSalePage = () => {
+  const { data: billingConfig } = useGetSeedBillingConfigQuery();
+  const gstRate = Number(billingConfig?.gstRate ?? 5);
   const [mobile, setMobile] = useState('');
   const search = useDeferredValue(mobile.trim());
   const [customer, setCustomer] = useState<Customer>();
@@ -121,8 +127,10 @@ export const SeedSalePage = () => {
       ),
     [lines],
   );
-  const displayedPaid = paymentEdited ? paidAmount : money(totals.net);
-  const remaining = Math.max(0, totals.net - Number(displayedPaid || 0));
+  const gstAmount = (totals.net * gstRate) / 100;
+  const billTotal = totals.net + gstAmount;
+  const displayedPaid = paymentEdited ? paidAmount : money(billTotal);
+  const remaining = Math.max(0, billTotal - Number(displayedPaid || 0));
   const updateLine = (index: number, patch: Partial<Line>) =>
     setLines((current) =>
       current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)),
@@ -206,8 +214,8 @@ export const SeedSalePage = () => {
         return;
       }
     }
-    if (!amountPattern.test(displayedPaid) || Number(displayedPaid) > totals.net) {
-      setMessage(`Payment cannot be greater than the bill total of ₹${money(totals.net)}.`);
+    if (!amountPattern.test(displayedPaid) || Number(displayedPaid) > billTotal) {
+      setMessage(`Payment cannot be greater than the bill total of ₹${money(billTotal)}.`);
       return;
     }
     const parsed = CreateSeedBillSchema.safeParse({
@@ -241,9 +249,45 @@ export const SeedSalePage = () => {
   if (pendingBill && customer) {
     return (
       <section className="draft-receipt print-receipt card mt-4 overflow-hidden p-0">
+        <div className="no-print border-b border-stone-200 bg-brand-900 px-5 py-4 text-white">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-200">Invoice preview</p>
+          <div className="mt-1 flex items-end justify-between gap-4"><h2 className="text-xl font-bold">Confirm seed bill</h2><p className="text-xs text-green-100">Not saved yet</p></div>
+        </div>
+        <SeedInvoice invoice={{
+          number: 'DRAFT',
+          statusLabel: 'Not saved yet',
+          customer,
+          serviceDate,
+          items: lines.map((line, index) => ({
+            key: `${line.productId}-${index}`,
+            name: catalog?.products.find((item) => item.id === line.productId)?.name ?? 'Seed',
+            quantity: line.quantity,
+            unit: line.unit === 'GRAM' ? 'g' : line.unit === 'KILOGRAM' ? 'kg' : 'quintal',
+            ratePerKg: money(line.ratePerKg),
+            amount: money(lineTotals(line).net),
+          })),
+          subtotal: money(totals.net),
+          gstRate: money(gstRate),
+          gstAmount: money(gstAmount),
+          grandTotal: money(billTotal),
+          paid: money(displayedPaid),
+          due: money(waiveSmallBalance ? 0 : remaining),
+        }} />
+        <div className="hidden">
         <div className="print-only hidden border-b-2 border-stone-900 p-5 text-center">
-          <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
-          <p className="mt-1 font-bold">Seed sale receipt</p>
+          <img
+            className="mx-auto mb-3 h-20 w-auto bg-stone-700 p-2"
+            src="/icons/rcp-exim-logo.png"
+            alt="RCP EXIM"
+          />
+          <h1 className="text-2xl font-black">RCP EXIM PRIVATE LIMITED</h1>
+          <p className="mt-1 text-xs">
+            Opposite Police Line, Police Colony, Mandsaur, Madhya Pradesh 458001
+          </p>
+          <p className="mt-1 text-xs font-bold">
+            IEC: AAPCR6909P · Support: +91 99819 80308
+          </p>
+          <p className="mt-2 font-bold">Seed sale invoice</p>
           <p className="mt-1 text-xs">Draft · Not saved yet</p>
         </div>
         <div className="no-print border-b border-stone-200 bg-brand-900 px-5 py-4 text-white">
@@ -325,7 +369,7 @@ export const SeedSalePage = () => {
             </div>
           )}
         </div>
-        <div className="grid border-y border-stone-200 bg-stone-50 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid border-y border-stone-200 bg-stone-50 sm:grid-cols-2 lg:grid-cols-6">
           <div className="p-4">
             <p className="card-label">Gross amount</p>
             <p className="mt-1 text-xl font-black">₹{money(totals.gross)}</p>
@@ -333,6 +377,14 @@ export const SeedSalePage = () => {
           <div className="border-stone-200 p-4 sm:border-x">
             <p className="card-label">Discount</p>
             <p className="mt-1 text-xl font-black text-amber-700">− ₹{money(totals.discount)}</p>
+          </div>
+          <div className="border-stone-200 p-4 lg:border-r">
+            <p className="card-label">GST ({gstRate}%)</p>
+            <p className="mt-1 text-xl font-black">₹{money(gstAmount)}</p>
+          </div>
+          <div className="border-stone-200 bg-brand-50 p-4 lg:border-r">
+            <p className="card-label">Grand total</p>
+            <p className="mt-1 text-xl font-black text-brand-900">₹{money(billTotal)}</p>
           </div>
           <div className="p-4">
             <p className="card-label">Amount paid</p>
@@ -347,6 +399,7 @@ export const SeedSalePage = () => {
         </div>
         <div className="print-only hidden border-t border-dashed border-stone-500 p-5 text-center text-xs">
           Please retain this receipt for your records.
+        </div>
         </div>
         <div className="no-print flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
           <button
@@ -679,9 +732,9 @@ export const SeedSalePage = () => {
           </label>
           <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
             <p className="card-label">Bill amount</p>
-            <p className="mt-0.5 text-2xl font-extrabold text-brand-900">₹{money(totals.net)}</p>
+            <p className="mt-0.5 text-2xl font-extrabold text-brand-900">₹{money(billTotal)}</p>
             <p className="text-xs text-stone-500">
-              Gross ₹{money(totals.gross)} · Discount ₹{money(totals.discount)}
+              Subtotal ₹{money(totals.net)} · GST ₹{money(gstAmount)}
             </p>
           </div>
           <label className="field-label">

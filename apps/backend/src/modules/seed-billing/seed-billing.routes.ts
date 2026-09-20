@@ -8,10 +8,12 @@ import {
   cancelSeedBill,
   createSeedBill,
   getSeedBill,
+  getPublicSeedReceipt,
   listSeedBills,
   listSeedBillRevisions,
   reviseSeedBill,
 } from './seed-billing.service.js';
+import { env } from '../../config/env.js';
 const parse = <T>(s: z.ZodType<T>, v: unknown) => {
   const r = s.safeParse(v);
   if (!r.success)
@@ -24,7 +26,18 @@ const parse = <T>(s: z.ZodType<T>, v: unknown) => {
   return r.data;
 };
 export const seedBillingRouter = Router();
+seedBillingRouter.get('/public/:token', async (req, res, next) => {
+  try {
+    const token = parse(SeedBillIdSchema.transform((value) => value.id), { id: req.params.token });
+    res.json({ bill: await getPublicSeedReceipt(token) });
+  } catch (e) {
+    next(e);
+  }
+});
 seedBillingRouter.use(requireAuth);
+seedBillingRouter.get('/config/gst', (_req, res) => {
+  res.json({ gstRate: env.SEED_GST_RATE_PERCENT.toFixed(2) });
+});
 seedBillingRouter.get('/', async (req, res, next) => {
   try {
     const q = parse(SeedBillListQuerySchema, req.query);

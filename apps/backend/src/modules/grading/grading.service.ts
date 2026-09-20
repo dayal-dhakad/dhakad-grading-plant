@@ -251,9 +251,11 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
         gradingEntryId: created.id,
         variables: {
           name: customer.name,
-          number: `GR-${String(created.entryNumber).padStart(6, '0')}`,
+          crop: crop.name,
+          quantity: quantity.toFixed(2),
           amount: calculatedAmount.toFixed(2),
           paid: paidAmount.toFixed(2),
+          due: Prisma.Decimal.max(0, calculatedAmount.minus(paidAmount).minus(waivedAmount)).toFixed(2),
         },
         preview: `Grading GR-${String(created.entryNumber).padStart(6, '0')} recorded. Amount ₹${calculatedAmount.toFixed(2)}, paid ₹${paidAmount.toFixed(2)}.`,
       });

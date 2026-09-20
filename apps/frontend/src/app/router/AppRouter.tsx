@@ -20,6 +20,7 @@ import { ReportsPage } from '@/components/admin/ReportsPage';
 import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
 import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
+import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
 
 const SessionGate = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
@@ -64,6 +65,7 @@ const RoleLanding = () => {
 
 export const AppRouter = () => (
   <Routes>
+    <Route path="/receipts/seed/:token" element={<PublicSeedReceiptPage />} />
     <Route path="/login" element={<LoginRoute />} />
     <Route path="/" element={<SessionGate />}>
       <Route index element={<RoleLanding />} />

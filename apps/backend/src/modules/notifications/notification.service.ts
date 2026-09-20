@@ -4,6 +4,7 @@ import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { NotificationListQuery } from './notification.schemas.js';
 import { sendMsg91 } from './msg91.provider.js';
+import { sendFast2SmsWhatsApp } from './fast2sms.provider.js';
 
 type Tx = Prisma.TransactionClient;
 export const enqueueCustomerNotifications = async (
@@ -145,11 +146,18 @@ export const processNotificationOutbox = async () => {
       });
       if (!claimed.count) continue;
       try {
-        const providerMessageId = await sendMsg91({
-          channel: row.channel,
-          recipient: row.recipient,
-          variables: row.variables as Record<string, string>,
-        });
+        const providerMessageId =
+          row.channel === 'WHATSAPP'
+            ? await sendFast2SmsWhatsApp({
+                eventType: row.eventType,
+                recipient: row.recipient,
+                variables: row.variables as Record<string, string>,
+              })
+            : await sendMsg91({
+                channel: 'SMS',
+                recipient: row.recipient,
+                variables: row.variables as Record<string, string>,
+              });
         await prisma.notification.update({
           where: { id: row.id },
           data: { status: 'SENT', providerMessageId, sentAt: new Date(), lastError: null },

@@ -144,7 +144,7 @@ model Customer {
   village         String                @db.VarChar(120)
   isActive        Boolean               @default(true) @map("is_active")
   smsConsent      Boolean               @default(false) @map("sms_consent")
-  whatsappConsent Boolean               @default(false) @map("whatsapp_consent")
+  whatsappConsent Boolean               @default(true) @map("whatsapp_consent")
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
   gradingEntries  GradingEntry[]
@@ -427,10 +427,14 @@ model SeedStockMovement {
 model SeedBill {
   id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   billNumber         Int                   @unique @default(autoincrement()) @map("bill_number")
+  publicReceiptToken String                @unique @default(dbgenerated("gen_random_uuid()")) @map("public_receipt_token") @db.Uuid
   customerId         String                @map("customer_id") @db.Uuid
   customer           Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   grossAmount        Decimal               @map("gross_amount") @db.Decimal(12, 2)
   discountAmount     Decimal               @map("discount_amount") @db.Decimal(12, 2)
+  subtotalAmount     Decimal               @map("subtotal_amount") @db.Decimal(12, 2)
+  gstRate            Decimal               @map("gst_rate") @db.Decimal(5, 2)
+  gstAmount          Decimal               @map("gst_amount") @db.Decimal(12, 2)
   netAmount          Decimal               @map("net_amount") @db.Decimal(12, 2)
   paidAmount         Decimal               @map("paid_amount") @db.Decimal(12, 2)
   waivedAmount       Decimal               @default(0) @map("waived_amount") @db.Decimal(12, 2)

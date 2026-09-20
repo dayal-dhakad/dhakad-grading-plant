@@ -10,9 +10,10 @@ import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { SeedBillListQuery } from './seed-billing.schemas.js';
 import { enqueueCustomerNotifications } from '../notifications/notification.service.js';
+import { env } from '../../config/env.js';
 
 const include = {
-  customer: { select: { id: true, name: true, mobile: true } },
+  customer: { select: { id: true, name: true, mobile: true, village: true, address: true } },
   createdBy: { select: { id: true, name: true } },
   paymentAccount: { select: { id: true, name: true, upiId: true } },
   items: { where: { isCurrent: true }, include: { product: { select: { id: true, name: true } } } },
@@ -24,6 +25,9 @@ const present = (b: Full) => ({
   customer: b.customer,
   grossAmount: b.grossAmount.toFixed(2),
   discountAmount: b.discountAmount.toFixed(2),
+  subtotalAmount: b.subtotalAmount.toFixed(2),
+  gstRate: b.gstRate.toFixed(2),
+  gstAmount: b.gstAmount.toFixed(2),
   netAmount: b.netAmount.toFixed(2),
   paidAmount: b.paidAmount.toFixed(2),
   dueAmount:
@@ -99,7 +103,10 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
       });
       const gross = lines.reduce((s, l) => s.plus(l.gross), new Prisma.Decimal(0)),
         discount = lines.reduce((s, l) => s.plus(l.discount), new Prisma.Decimal(0)),
-        net = gross.minus(discount),
+        subtotal = gross.minus(discount),
+        gstRate = new Prisma.Decimal(env.SEED_GST_RATE_PERCENT),
+        gstAmount = subtotal.mul(gstRate).div(100).toDecimalPlaces(2),
+        net = subtotal.plus(gstAmount),
         paid = new Prisma.Decimal(input.paidAmount);
       if (paid.gt(net))
         throw new AppError(400, 'PAYMENT_EXCEEDS_TOTAL', 'Payment cannot exceed bill total');
@@ -117,6 +124,9 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
           customerId: input.customerId,
           grossAmount: gross,
           discountAmount: discount,
+          subtotalAmount: subtotal,
+          gstRate,
+          gstAmount,
           netAmount: net,
           paidAmount: paid,
           waivedAmount: waived,
@@ -200,6 +210,8 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
           number: `SEED-${String(bill.billNumber).padStart(6, '0')}`,
           amount: net.toFixed(2),
           paid: paid.toFixed(2),
+          due: Prisma.Decimal.max(0, net.minus(paid).minus(waived)).toFixed(2),
+          receiptUrl: `${process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'}/receipts/seed/${bill.publicReceiptToken}`,
         },
         preview: `Seed bill SEED-${String(bill.billNumber).padStart(6, '0')} recorded. Amount ₹${net.toFixed(2)}, paid ₹${paid.toFixed(2)}.`,
       });
@@ -207,6 +219,15 @@ export const createSeedBill = async (input: CreateSeedBillInput, userId: string)
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
+
+export const getPublicSeedReceipt = async (token: string) => {
+  const bill = await prisma.seedBill.findUnique({
+    where: { publicReceiptToken: token },
+    include,
+  });
+  if (!bill) throw new AppError(404, 'RECEIPT_NOT_FOUND', 'Receipt was not found');
+  return present(bill);
+};
 
 export const listSeedBills = async (q: SeedBillListQuery, staffId?: string) => {
   const where: Prisma.SeedBillWhereInput = {
@@ -341,7 +362,10 @@ export const reviseSeedBill = async (id: string, input: ReviseSeedBillInput, use
       });
       const gross = sumLines(lines.map((line) => line.gross));
       const discount = sumLines(lines.map((line) => line.discount));
-      const net = gross.minus(discount);
+      const subtotal = gross.minus(discount);
+      const gstRate = new Prisma.Decimal(env.SEED_GST_RATE_PERCENT);
+      const gstAmount = subtotal.mul(gstRate).div(100).toDecimalPlaces(2);
+      const net = subtotal.plus(gstAmount);
       const paid = new Prisma.Decimal(input.paidAmount);
       if (paid.gt(net))
         throw new AppError(400, 'PAYMENT_EXCEEDS_TOTAL', 'Payment cannot exceed bill total');
@@ -440,6 +464,9 @@ export const reviseSeedBill = async (id: string, input: ReviseSeedBillInput, use
           customerId: input.customerId,
           grossAmount: gross,
           discountAmount: discount,
+          subtotalAmount: subtotal,
+          gstRate,
+          gstAmount,
           netAmount: net,
           paidAmount: paid,
           waivedAmount: waived,

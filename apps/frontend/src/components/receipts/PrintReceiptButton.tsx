@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { GradingEntry, Payment, SeedBill } from '@dhakad/shared';
 import { PrintIcon } from '../table/TableActions';
 import { tableActionClass, tableIconActionClass } from '../table/table-action-styles';
+import { SeedInvoice } from './SeedInvoice';
+import { GradingInvoice } from './GradingInvoice';
 
 type Props = (
   | { kind: 'grading'; record: GradingEntry }
@@ -15,18 +17,132 @@ const mode = (value: string) => (value === 'CASH' ? 'Cash' : value === 'ONLINE' 
 export const PrintReceiptButton = (props: Props) => {
   const [open, setOpen] = useState(false);
   const [paper, setPaper] = useState<'a4' | 'thermal'>('a4');
-  const receiptNumber =
-    props.kind === 'grading'
-      ? number('GR', props.record.entryNumber)
-      : props.kind === 'seed'
-        ? number('SEED', props.record.billNumber)
-        : number('RCPT', props.record.receiptNumber);
-  const title =
-    props.kind === 'grading'
-      ? 'Grading receipt'
-      : props.kind === 'seed'
-        ? 'Seed sale receipt'
-        : 'Payment receipt';
+  const openPrint = () => {
+    setOpen(true);
+    if (props.iconOnly)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          window.print();
+          setOpen(false);
+        }),
+      );
+  };
+  if (props.kind === 'seed') {
+    const receiptNumber = number('SEED', props.record.billNumber);
+    return (
+      <>
+        <button
+          type="button"
+          className={props.iconOnly ? tableIconActionClass('brand') : tableActionClass('brand')}
+          aria-label={props.iconOnly ? `Print ${receiptNumber} invoice` : undefined}
+          title={props.iconOnly ? `Print ${receiptNumber} invoice` : undefined}
+          onClick={openPrint}
+        >
+          <PrintIcon />
+          {!props.iconOnly && 'Print'}
+        </button>
+        {open && (
+          <div
+            className={
+              props.iconOnly
+                ? 'receipt-overlay pointer-events-none fixed inset-0 opacity-0 print:pointer-events-auto print:opacity-100'
+                : 'receipt-overlay fixed inset-0 z-50 overflow-y-auto bg-stone-950/55 p-3 sm:p-6'
+            }
+          >
+            <div className="mx-auto max-w-4xl">
+              <div className="no-print mb-3 flex justify-end gap-2 rounded-xl bg-white p-3">
+                <button className="secondary-button" onClick={() => setOpen(false)}>
+                  Close
+                </button>
+                <button className="primary-button" onClick={() => window.print()}>
+                  Print invoice
+                </button>
+              </div>
+              <div className="print-receipt receipt-a4">
+                <SeedInvoice
+                  invoice={{
+                    number: receiptNumber,
+                    customer: props.record.customer,
+                    serviceDate: props.record.serviceDate,
+                    items: props.record.items.map((item) => ({
+                      key: item.id,
+                      name: item.product.name,
+                      quantity: item.enteredQuantity,
+                      unit: item.enteredUnit.toLowerCase(),
+                      ratePerKg: item.ratePerKg,
+                      amount: item.netAmount,
+                    })),
+                    subtotal: props.record.subtotalAmount,
+                    gstRate: props.record.gstRate,
+                    gstAmount: props.record.gstAmount,
+                    grandTotal: props.record.netAmount,
+                    paid: props.record.paidAmount,
+                    due: props.record.dueAmount,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+  if (props.kind === 'grading') {
+    const receiptNumber = number('GR', props.record.entryNumber);
+    return (
+      <>
+        <button
+          type="button"
+          className={props.iconOnly ? tableIconActionClass('brand') : tableActionClass('brand')}
+          aria-label={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
+          title={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
+          onClick={openPrint}
+        >
+          <PrintIcon />
+          {!props.iconOnly && 'Print'}
+        </button>
+        {open && (
+          <div
+            className={
+              props.iconOnly
+                ? 'receipt-overlay pointer-events-none fixed inset-0 opacity-0 print:pointer-events-auto print:opacity-100'
+                : 'receipt-overlay fixed inset-0 z-50 overflow-y-auto bg-stone-950/55 p-3 sm:p-6'
+            }
+          >
+            <div className="mx-auto max-w-3xl">
+              <div className="no-print mb-3 flex justify-end gap-2 rounded-xl bg-white p-3">
+                <button className="secondary-button" onClick={() => setOpen(false)}>
+                  Close
+                </button>
+                <button className="primary-button" onClick={() => window.print()}>
+                  Print receipt
+                </button>
+              </div>
+              <div className="print-receipt receipt-a4">
+                <GradingInvoice
+                  invoice={{
+                    number: receiptNumber,
+                    customer: props.record.customer,
+                    serviceDate: props.record.serviceDate,
+                    crop: props.record.crop.name,
+                    quantity: `${props.record.quantity} ${props.record.unit.symbol}`,
+                    rate: props.record.rate,
+                    amount: props.record.calculatedAmount,
+                    paid: props.record.paidAmount,
+                    due: props.record.dueAmount,
+                    paymentMode: mode(props.record.paymentMethod),
+                    notes: props.record.notes,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+  const receiptNumber = number('RCPT', props.record.receiptNumber);
+  const title = 'Payment receipt';
   return (
     <>
       <button
@@ -34,13 +150,19 @@ export const PrintReceiptButton = (props: Props) => {
         className={props.iconOnly ? tableIconActionClass('brand') : tableActionClass('brand')}
         aria-label={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
         title={props.iconOnly ? `Print ${receiptNumber} receipt` : undefined}
-        onClick={() => setOpen(true)}
+        onClick={openPrint}
       >
         <PrintIcon />
         {!props.iconOnly && 'Print'}
       </button>
       {open && (
-        <div className="receipt-overlay fixed inset-0 z-50 overflow-y-auto bg-stone-950/55 p-3 sm:p-6">
+        <div
+          className={
+            props.iconOnly
+              ? 'receipt-overlay pointer-events-none fixed inset-0 opacity-0 print:pointer-events-auto print:opacity-100'
+              : 'receipt-overlay fixed inset-0 z-50 overflow-y-auto bg-stone-950/55 p-3 sm:p-6'
+          }
+        >
           <div className="mx-auto max-w-3xl">
             <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3">
               <label className="flex items-center gap-2 text-sm font-bold">
@@ -67,7 +189,13 @@ export const PrintReceiptButton = (props: Props) => {
               className={`print-receipt bg-white text-stone-950 ${paper === 'thermal' ? 'receipt-thermal' : 'receipt-a4'}`}
             >
               <header className="border-b-2 border-stone-900 pb-4 text-center">
+                <img
+                  className="mx-auto mb-2 h-16 w-16 object-contain"
+                  src="/icons/dhakad-logo.png"
+                  alt="Dhakad Grading Plant"
+                />
                 <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
+                <p className="mt-1 text-xs">Support: +91 99819 80308</p>
                 <p className="mt-1 font-bold">{title}</p>
                 <p className="mt-1 text-sm">{receiptNumber}</p>
               </header>
@@ -78,71 +206,16 @@ export const PrintReceiptButton = (props: Props) => {
                 <strong className="text-right">{props.record.customer.mobile}</strong>
                 <span>Date</span>
                 <strong className="text-right">
-                  {props.kind === 'payment'
-                    ? new Date(props.record.createdAt).toLocaleDateString('en-IN')
-                    : props.record.serviceDate}
+                  {new Date(props.record.createdAt).toLocaleDateString('en-IN')}
                 </strong>
                 <span>Status</span>
                 <strong className="text-right">
-                  {props.record.status === 'ACTIVE'
-                    ? 'Active'
-                    : props.kind === 'payment'
-                      ? 'Reversed'
-                      : 'Cancelled'}
+                  {props.record.status === 'ACTIVE' ? 'Active' : 'Reversed'}
                 </strong>
               </div>
-              {props.kind === 'grading' && (
-                <div className="mt-5 border-y border-stone-300 py-3 text-sm">
-                  <p className="font-bold">{props.record.crop.name}</p>
-                  <p className="mt-1">
-                    {props.record.quantity} {props.record.unit.symbol} × ₹{props.record.rate}
-                  </p>
-                </div>
-              )}
-              {props.kind === 'seed' && (
-                <table className="mt-5 w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="py-2">Item</th>
-                      <th>Qty.</th>
-                      <th className="text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {props.record.items.map((item) => (
-                      <tr className="border-b" key={item.id}>
-                        <td className="py-2">{item.product.name}</td>
-                        <td>
-                          {item.enteredQuantity} {item.enteredUnit.toLowerCase()}
-                        </td>
-                        <td className="text-right">₹{item.netAmount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
               <div className="mt-5 grid grid-cols-2 gap-2 border-t-2 border-stone-900 pt-3">
-                {props.kind !== 'payment' && (
-                  <>
-                    <span>Total</span>
-                    <strong className="text-right">
-                      ₹
-                      {props.kind === 'grading'
-                        ? props.record.calculatedAmount
-                        : props.record.netAmount}
-                    </strong>
-                  </>
-                )}
-                <span>{props.kind === 'payment' ? 'Amount received' : 'Paid'}</span>
-                <strong className="text-right">
-                  ₹{props.kind === 'payment' ? props.record.amount : props.record.paidAmount}
-                </strong>
-                {props.kind !== 'payment' && (
-                  <>
-                    <span>Due</span>
-                    <strong className="text-right">₹{props.record.dueAmount}</strong>
-                  </>
-                )}
+                <span>Amount received</span>
+                <strong className="text-right">₹{props.record.amount}</strong>
                 <span>Payment mode</span>
                 <strong className="text-right">{mode(props.record.paymentMethod)}</strong>
                 {props.record.paymentAccount && (

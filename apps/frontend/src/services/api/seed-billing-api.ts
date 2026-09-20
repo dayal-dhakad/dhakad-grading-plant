@@ -10,6 +10,9 @@ import {
 import { baseApi } from './base-api';
 export const seedBillingApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
+    getSeedBillingConfig: b.query<{ gstRate: string }, void>({
+      query: () => '/seed-bills/config/gst',
+    }),
     getSeedBills: b.query<
       ReturnType<typeof SeedBillListResponseSchema.parse>,
       {
@@ -103,6 +106,7 @@ export const seedBillingApi = baseApi.injectEndpoints({
   }),
 });
 export const {
+  useGetSeedBillingConfigQuery,
   useGetSeedBillsQuery,
   useGetSeedBillQuery,
   useGetSeedBillRevisionsQuery,

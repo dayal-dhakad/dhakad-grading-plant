@@ -13,6 +13,13 @@ const schema = z.object({
     .optional(),
   MSG91_WHATSAPP_TEMPLATE_NAME: z.string().optional(),
   MSG91_WHATSAPP_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
+  FAST2SMS_API_KEY: z.string().optional(),
+  FAST2SMS_PHONE_NUMBER_ID: z.string().optional(),
+  FAST2SMS_API_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v26.0'),
+  FAST2SMS_GRADING_TEMPLATE_NAME: z.string().default('crop_grading_completed'),
+  FAST2SMS_SEED_TEMPLATE_NAME: z.string().default('seed_bill_confirmation'),
+  FAST2SMS_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
+  SEED_GST_RATE_PERCENT: z.coerce.number().min(0).max(100).default(5),
 });
 const result = schema.safeParse(process.env);
 if (!result.success) {
