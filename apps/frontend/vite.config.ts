@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 const directory = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
-  base: './',
+  base: process.env.VITE_APP_BASE ?? '/',
   plugins: [
     react(),
     tailwindcss(),

@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "echo No desktop tests required in Phase 1",
-    "package": "npm run build && npm run build -w @dhakad/frontend && electron-builder --win"
+    "package": "npm run build && cross-env VITE_APP_BASE=./ npm run build -w @dhakad/frontend && electron-builder --win"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
