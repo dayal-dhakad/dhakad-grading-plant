@@ -39,7 +39,11 @@ export default defineConfig({
           },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png}'], navigateFallback: '/index.html' },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,jpeg,jpg}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/icons\//, /\.[^/]+$/],
+      },
     }),
   ],
   resolve: { alias: { '@': path.resolve(directory, 'src') } },
