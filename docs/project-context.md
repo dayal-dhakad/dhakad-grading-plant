@@ -2,7 +2,8 @@
 
 ## Current status
 
-Phases 1 through 13 and Phases 15 through 17 are implemented and verified. Phase 14 MSG91 notification code is
+Phases 1 through 13 and Phases 15 through 18 are implemented and verified locally. Phase 18 live
+VPS/domain rollout remains environment-specific operational work. Phase 14 MSG91 notification code is
 implemented locally, with live delivery verification explicitly deferred until credentials and
 approved templates are available. Phase 15 added administrator reports and CSV export. Phase 16
 added printable grading, seed-sale, and payment receipts in A4 and 80mm thermal formats. Phase 17

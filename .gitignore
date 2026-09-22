@@ -4,9 +4,11 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.production.example
 *.log
 *.tsbuildinfo
 .vite/
 apps/desktop/release/
+backups/
 .tmp-invoice-preview/
 Thumbs.db

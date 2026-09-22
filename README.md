@@ -1,6 +1,6 @@
 # Dhakad Grading Plant
 
-Production-oriented business management for a crop grading and cleaning plant. Phase 1 contains technical foundation only.
+Production-oriented business management for a crop grading and cleaning plant.
 
 ## Architecture
 
@@ -9,7 +9,7 @@ Production-oriented business management for a crop grading and cleaning plant. P
 - `apps/desktop`: secure Electron shell loading the shared frontend
 - `packages/shared`: intentional cross-application contracts
 
-The backend and database are authoritative. Business modules are intentionally absent.
+The backend and database are authoritative.
 
 ## Setup
 
@@ -31,3 +31,10 @@ Frontend runs at `http://localhost:5173`; backend defaults to port 3000. Vite pr
 - `npm run package -w @dhakad/desktop`: Windows installer
 
 `VITE_API_BASE_URL` defaults to `/api/v1`. Local PostgreSQL is exposed on port `5433`. Never commit `.env` files or real credentials. The PWA caches build assets only; API caching and offline transactions are not configured.
+
+## Production
+
+The production Compose stack includes HTTPS termination, frontend, backend, migrations, and private
+PostgreSQL. Copy `.env.production.example` to `.env.production` and follow
+`infrastructure/deployment/README.md`. The local `docker-compose.yml` intentionally remains
+database-only for a fast hot-reload development workflow.

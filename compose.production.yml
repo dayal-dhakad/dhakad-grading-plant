@@ -1,0 +1,119 @@
+name: dhakad-grading-plant-production
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
+services:
+  gateway:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env.production}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/healthz || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      FRONTEND_ORIGIN: https://${APP_DOMAIN}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+      SEED_GST_RATE_PERCENT: ${SEED_GST_RATE_PERCENT:-5}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      MSG91_SMS_FLOW_ID: ${MSG91_SMS_FLOW_ID:-}
+      MSG91_WHATSAPP_INTEGRATED_NUMBER: ${MSG91_WHATSAPP_INTEGRATED_NUMBER:-}
+      MSG91_WHATSAPP_TEMPLATE_NAME: ${MSG91_WHATSAPP_TEMPLATE_NAME:-}
+      MSG91_WHATSAPP_TEMPLATE_LANGUAGE: ${MSG91_WHATSAPP_TEMPLATE_LANGUAGE:-en}
+      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
+      FAST2SMS_PHONE_NUMBER_ID: ${FAST2SMS_PHONE_NUMBER_ID:-}
+      FAST2SMS_API_VERSION: ${FAST2SMS_API_VERSION:-v26.0}
+      FAST2SMS_GRADING_TEMPLATE_NAME: ${FAST2SMS_GRADING_TEMPLATE_NAME:-crop_grading_completed}
+      FAST2SMS_SEED_TEMPLATE_NAME: ${FAST2SMS_SEED_TEMPLATE_NAME:-seed_bill_confirmation}
+      FAST2SMS_TEMPLATE_LANGUAGE: ${FAST2SMS_TEMPLATE_LANGUAGE:-en}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: migration
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    command: ['./apps/backend/node_modules/.bin/prisma', 'migrate', 'deploy', '--schema', 'apps/backend/prisma/schema.prisma']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    shm_size: 256mb
+    logging: *default-logging
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
