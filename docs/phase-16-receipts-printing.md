@@ -24,3 +24,9 @@
 - `npm test` passed: backend 37, frontend 4, shared 44 (85 total).
 - `npm run build` passed for shared, backend, frontend/PWA, and desktop.
 - Vite reports a non-blocking JavaScript chunk-size warning.
+
+## Maintenance fixes
+
+- Entry-table shortcut printing keeps its temporary receipt mounted until the browser fires
+  `afterprint`. This prevents blank output in browsers where `window.print()` returns before the
+  print renderer captures the page.

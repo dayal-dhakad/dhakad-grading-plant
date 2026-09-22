@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { GradingEntry, Payment, SeedBill } from '@dhakad/shared';
 import { PrintIcon } from '../table/TableActions';
 import { tableActionClass, tableIconActionClass } from '../table/table-action-styles';
@@ -17,16 +17,25 @@ const mode = (value: string) => (value === 'CASH' ? 'Cash' : value === 'ONLINE' 
 export const PrintReceiptButton = (props: Props) => {
   const [open, setOpen] = useState(false);
   const [paper, setPaper] = useState<'a4' | 'thermal'>('a4');
-  const openPrint = () => {
-    setOpen(true);
-    if (props.iconOnly)
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          window.print();
-          setOpen(false);
-        }),
-      );
-  };
+
+  useEffect(() => {
+    if (!open || !props.iconOnly) return;
+
+    const closeAfterPrint = () => setOpen(false);
+    let printFrame = 0;
+    const renderFrame = requestAnimationFrame(() => {
+      printFrame = requestAnimationFrame(() => window.print());
+    });
+
+    window.addEventListener('afterprint', closeAfterPrint, { once: true });
+    return () => {
+      cancelAnimationFrame(renderFrame);
+      cancelAnimationFrame(printFrame);
+      window.removeEventListener('afterprint', closeAfterPrint);
+    };
+  }, [open, props.iconOnly]);
+
+  const openPrint = () => setOpen(true);
   if (props.kind === 'seed') {
     const receiptNumber = number('SEED', props.record.billNumber);
     return (
