@@ -107,9 +107,11 @@ export {
   NotificationStatusSchema,
   NotificationEventTypeSchema,
   SendReminderSchema,
+  SendBulkReminderSchema,
   NotificationSchema,
   NotificationListResponseSchema,
   type SendReminderInput,
+  type SendBulkReminderInput,
 } from './notification.js';
 export {
   ReportQuerySchema,

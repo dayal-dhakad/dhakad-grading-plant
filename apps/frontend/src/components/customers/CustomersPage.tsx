@@ -8,6 +8,10 @@ import {
   useSetCustomerStatusMutation,
   useUpdateCustomerMutation,
 } from '@/services/api/customer-api';
+import {
+  useSendBulkRemindersMutation,
+  useSendReminderMutation,
+} from '@/services/api/notification-api';
 import { MobileNumberInput } from '../form/MobileNumberInput';
 import { TablePagination } from '../table/TablePagination';
 
@@ -259,6 +263,8 @@ export const CustomersPage = () => {
   const [pageSize, setPageSize] = useState(20);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [creating, setCreating] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [remindingCustomerId, setRemindingCustomerId] = useState<string>();
   const { data, isLoading, isFetching, isError, refetch } = useGetCustomersQuery({
     ...(deferredSearch ? { search: deferredSearch } : {}),
     status,
@@ -266,8 +272,37 @@ export const CustomersPage = () => {
     pageSize,
   });
   const [setStatusMutation, statusState] = useSetCustomerStatusMutation();
+  const [sendReminder] = useSendReminderMutation();
+  const [sendBulkReminders, bulkReminderState] = useSendBulkRemindersMutation();
   const changeStatus = (customer: Customer) => {
     void setStatusMutation({ id: customer.id, isActive: !customer.isActive });
+  };
+  const remindCustomer = async (customer: Customer) => {
+    setReminderMessage('');
+    setRemindingCustomerId(customer.id);
+    try {
+      await sendReminder({ customerId: customer.id, channels: ['WHATSAPP'] }).unwrap();
+      setReminderMessage(`WhatsApp due reminder queued for ${customer.name}.`);
+    } catch {
+      setReminderMessage(`Unable to queue a reminder for ${customer.name}.`);
+    } finally {
+      setRemindingCustomerId(undefined);
+    }
+  };
+  const remindAll = async () => {
+    if (!window.confirm('Send a WhatsApp reminder to every customer with outstanding dues?'))
+      return;
+    setReminderMessage('');
+    try {
+      const result = await sendBulkReminders({ channels: ['WHATSAPP'] }).unwrap();
+      setReminderMessage(
+        result.customers
+          ? `Queued ${result.queued} WhatsApp reminder${result.queued === 1 ? '' : 's'} for ${result.customers} customer${result.customers === 1 ? '' : 's'}.`
+          : 'No customers currently have outstanding dues.',
+      );
+    } catch {
+      setReminderMessage('Unable to queue reminders. Please try again.');
+    }
   };
   return (
     <div className="mx-auto max-w-6xl">
@@ -279,9 +314,18 @@ export const CustomersPage = () => {
             Find customers quickly by mobile number, name, or village.
           </p>
         </div>
-        <button className="primary-button" onClick={() => setCreating(true)}>
-          + Add customer
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="secondary-button"
+            disabled={bulkReminderState.isLoading}
+            onClick={() => void remindAll()}
+          >
+            {bulkReminderState.isLoading ? 'Queuing reminders…' : 'Remind all dues'}
+          </button>
+          <button className="primary-button" onClick={() => setCreating(true)}>
+            + Add customer
+          </button>
+        </div>
       </div>
       <section className="mt-5 flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1">
@@ -326,6 +370,14 @@ export const CustomersPage = () => {
           ))}
         </div>
       </section>
+      {reminderMessage && (
+        <p
+          className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-900"
+          role="status"
+        >
+          {reminderMessage}
+        </p>
+      )}
       <section className="mt-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-semibold text-stone-600">
@@ -355,7 +407,7 @@ export const CustomersPage = () => {
         ) : (
           <div className="table-panel" role="table" aria-label="Customers">
             <div
-              className="hidden min-w-[806px] grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_176px] items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[0.6875rem] font-bold uppercase tracking-wider text-stone-500 sm:grid"
+              className="hidden min-w-[920px] grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_280px] items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[0.6875rem] font-bold uppercase tracking-wider text-stone-500 sm:grid"
               role="row"
             >
               <span role="columnheader">Customer</span>
@@ -371,7 +423,7 @@ export const CustomersPage = () => {
             {data?.customers.map((customer) => (
               <article
                 key={customer.id}
-                className="grid gap-1.5 border-t border-stone-100 px-3 py-1 transition first:border-t-0 hover:bg-brand-50/40 sm:min-w-[806px] sm:grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_176px] sm:items-center sm:gap-3"
+                className="grid gap-1.5 border-t border-stone-100 px-3 py-1 transition first:border-t-0 hover:bg-brand-50/40 sm:min-w-[920px] sm:grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_280px] sm:items-center sm:gap-3"
                 role="row"
               >
                 <div className="min-w-0 leading-tight" role="cell">
@@ -407,6 +459,18 @@ export const CustomersPage = () => {
                   </span>
                 </div>
                 <div className="flex shrink-0 justify-end gap-1.5" role="cell">
+                  <button
+                    className="compact-table-button border-brand-100 bg-brand-50 text-brand-800 hover:bg-brand-100 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400"
+                    disabled={Number(customer.totalDue) <= 0 || remindingCustomerId === customer.id}
+                    title={
+                      Number(customer.totalDue) <= 0
+                        ? 'No outstanding dues'
+                        : 'Send WhatsApp due reminder'
+                    }
+                    onClick={() => void remindCustomer(customer)}
+                  >
+                    {remindingCustomerId === customer.id ? 'Queuing…' : 'Remind'}
+                  </button>
                   <button
                     className="compact-table-button border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
                     onClick={() => setEditing(customer)}

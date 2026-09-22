@@ -1,5 +1,6 @@
 import {
   NotificationListResponseSchema,
+  SendBulkReminderSchema,
   SendReminderSchema,
   type SendReminderInput,
 } from '@dhakad/shared';
@@ -22,6 +23,18 @@ export const notificationApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
     }),
+    sendBulkReminders: builder.mutation<
+      { customers: number; queued: number; skippedNoConsent: number },
+      { channels: ('SMS' | 'WHATSAPP')[] }
+    >({
+      query: (body) => ({
+        url: '/notifications/reminders/bulk',
+        method: 'POST',
+        body: SendBulkReminderSchema.parse(body),
+      }),
+      invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
+    }),
   }),
 });
-export const { useGetNotificationsQuery, useSendReminderMutation } = notificationApi;
+export const { useGetNotificationsQuery, useSendReminderMutation, useSendBulkRemindersMutation } =
+  notificationApi;

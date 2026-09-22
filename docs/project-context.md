@@ -26,6 +26,9 @@ The primary users work in a local/village business environment. Optimize for lar
   configuration changes do not rewrite financial history.
 - WhatsApp transaction notifications are enabled by default for new and existing customers; staff
   can disable them for customers who opt out. SMS consent remains disabled by default.
+- Administrator-initiated WhatsApp due reminders may be sent regardless of the stored WhatsApp
+  transaction-notification consent flag. SMS reminders and automatic transaction notifications
+  continue to honor their channel consent flags.
 
 - Customer and staff names in lists or tables are navigation links.
 - Data tables use compact spacing inside bordered white panels. Primary identifiers, names,

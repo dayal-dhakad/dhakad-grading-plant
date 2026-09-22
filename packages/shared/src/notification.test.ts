@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SendReminderSchema } from './notification.js';
+import { SendBulkReminderSchema, SendReminderSchema } from './notification.js';
 describe('notification contracts', () => {
   it('accepts approved reminder variables and unique channels', () => {
     expect(
@@ -24,6 +24,14 @@ describe('notification contracts', () => {
         note: 'x'.repeat(121),
         extra: true,
       }).success,
+    ).toBe(false);
+  });
+  it('accepts a strict bulk reminder channel selection', () => {
+    expect(SendBulkReminderSchema.safeParse({ channels: ['WHATSAPP'] }).success).toBe(true);
+    expect(SendBulkReminderSchema.safeParse({ channels: [] }).success).toBe(false);
+    expect(
+      SendBulkReminderSchema.safeParse({ channels: ['WHATSAPP'], customerId: 'unexpected' })
+        .success,
     ).toBe(false);
   });
 });

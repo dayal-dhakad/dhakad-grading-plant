@@ -12,6 +12,7 @@ Status: implementation complete locally on 2026-09-14; live MSG91 delivery verif
   exposes only receipt data and does not require or grant an application session.
 - Fast2SMS configuration uses `FAST2SMS_API_KEY`, `FAST2SMS_PHONE_NUMBER_ID`, API version,
   template-name, and template-language environment variables.
+- The image-header due-reminder template additionally requires a public HTTPS header-image URL.
 
 ## Implemented scope
 
@@ -27,6 +28,10 @@ Status: implementation complete locally on 2026-09-14; live MSG91 delivery verif
   agree first.
 - Customer detail pages support due reminders through approved SMS and WhatsApp templates, with
   an optional 120-character template variable instead of unrestricted messaging.
+- The administrator customer table provides per-customer WhatsApp due reminders and a confirmed
+  bulk action for every customer with a positive authoritative ledger balance. Zero-due row actions
+  are disabled. WhatsApp due reminders do not require the stored transaction-notification consent
+  flag; SMS reminders and automatic notifications retain consent enforcement.
 - Customer notification history records the channel, event, template key, preview, attempts,
   provider message identifier, status, error, creator, and timestamps.
 

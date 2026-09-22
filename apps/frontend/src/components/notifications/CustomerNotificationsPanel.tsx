@@ -9,7 +9,7 @@ export const CustomerNotificationsPanel = ({ customer }: { customer: Customer })
     pageSize: 20,
   });
   const [sms, setSms] = useState(customer.smsConsent);
-  const [whatsapp, setWhatsapp] = useState(customer.whatsappConsent);
+  const [whatsapp, setWhatsapp] = useState(true);
   const [note, setNote] = useState('');
   const [message, setMessage] = useState('');
   const [send, state] = useSendReminderMutation();
@@ -26,7 +26,7 @@ export const CustomerNotificationsPanel = ({ customer }: { customer: Customer })
       setNote('');
       setMessage(`${result.queued} reminder${result.queued === 1 ? '' : 's'} queued.`);
     } catch {
-      setMessage('Unable to queue reminder. Check consent and outstanding dues.');
+      setMessage('Unable to queue reminder. Check the outstanding dues and try again.');
     }
   };
   return (
@@ -47,10 +47,9 @@ export const CustomerNotificationsPanel = ({ customer }: { customer: Customer })
           <input
             type="checkbox"
             checked={whatsapp}
-            disabled={!customer.whatsappConsent}
             onChange={(e) => setWhatsapp(e.target.checked)}
           />
-          WhatsApp {!customer.whatsappConsent && '(no consent)'}
+          WhatsApp
         </label>
         <label className="field-label sm:col-span-2">
           Approved reminder note (optional)

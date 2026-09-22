@@ -1,4 +1,4 @@
-import type { SendReminderInput } from '@dhakad/shared';
+import type { SendBulkReminderInput, SendReminderInput } from '@dhakad/shared';
 import { NotificationEventType, Prisma } from '@prisma/client';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
@@ -56,6 +56,7 @@ export const sendReminder = async (input: SendReminderInput, userId: string) =>
     if (balance.lte(0))
       throw new AppError(409, 'NO_OUTSTANDING_DUE', 'This customer has no outstanding due');
     for (const channel of input.channels) {
+      if (channel === 'WHATSAPP') continue;
       const consent = channel === 'SMS' ? customer.smsConsent : customer.whatsappConsent;
       if (!consent)
         throw new AppError(
@@ -77,6 +78,48 @@ export const sendReminder = async (input: SendReminderInput, userId: string) =>
       })),
     });
     return { queued: input.channels.length };
+  });
+
+export const sendBulkReminders = async (input: SendBulkReminderInput, userId: string) =>
+  prisma.$transaction(async (tx) => {
+    const balances = await tx.customerLedgerEntry.groupBy({
+      by: ['customerId'],
+      _sum: { amount: true },
+    });
+    const dueBalances = balances.filter((row) => row._sum.amount?.gt(0));
+    if (!dueBalances.length) return { customers: 0, queued: 0, skippedNoConsent: 0 };
+
+    const customers = await tx.customer.findMany({
+      where: { id: { in: dueBalances.map((row) => row.customerId) } },
+      select: { id: true, mobile: true, name: true, smsConsent: true, whatsappConsent: true },
+    });
+    const balanceByCustomer = new Map(
+      dueBalances.map((row) => [row.customerId, row._sum.amount!.toFixed(2)]),
+    );
+    const notifications = customers.flatMap((customer) =>
+      input.channels
+        .filter((channel) => channel === 'WHATSAPP' || customer.smsConsent)
+        .map((channel) => {
+          const amount = balanceByCustomer.get(customer.id)!;
+          return {
+            customerId: customer.id,
+            channel,
+            eventType: NotificationEventType.DUE_REMINDER,
+            recipient: `91${customer.mobile}`,
+            templateKey: 'due_reminder',
+            variables: { name: customer.name, amount, note: '' },
+            messagePreview: `Reminder: ₹${amount} is due`,
+            createdById: userId,
+          };
+        }),
+    );
+    if (notifications.length) await tx.notification.createMany({ data: notifications });
+    const notifiedCustomerIds = new Set(notifications.map((row) => row.customerId));
+    return {
+      customers: notifiedCustomerIds.size,
+      queued: notifications.length,
+      skippedNoConsent: customers.length - notifiedCustomerIds.size,
+    };
   });
 
 const include = {

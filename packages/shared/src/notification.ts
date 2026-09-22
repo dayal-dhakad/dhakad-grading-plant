@@ -27,6 +27,13 @@ export const SendReminderSchema = z.strictObject({
     .refine((v) => new Set(v).size === v.length, 'Select each channel once'),
   note: z.string().trim().max(120).optional(),
 });
+export const SendBulkReminderSchema = z.strictObject({
+  channels: z
+    .array(NotificationChannelSchema)
+    .min(1)
+    .max(2)
+    .refine((v) => new Set(v).size === v.length, 'Select each channel once'),
+});
 export const NotificationSchema = z.strictObject({
   id: z.uuid(),
   customer: z.strictObject({ id: z.uuid(), name: z.string(), mobile: z.string() }),
@@ -52,3 +59,4 @@ export const NotificationListResponseSchema = z.strictObject({
   }),
 });
 export type SendReminderInput = z.infer<typeof SendReminderSchema>;
+export type SendBulkReminderInput = z.infer<typeof SendBulkReminderSchema>;
