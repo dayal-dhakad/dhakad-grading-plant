@@ -98,5 +98,7 @@ docker compose --env-file .env.production -f compose.production.yml restart back
 Compose limits each service to five 10 MB JSON log files. Monitor disk usage, container health, TLS
 renewal, database backups, and the public health endpoint. Apply VPS security updates regularly.
 
-The Electron installer is not part of the VPS stack. Until its packaged renderer is configured for
-the production origin, deploy the web/PWA application and install it from the production browser.
+The Electron installer is not part of the VPS stack. Its packaged renderer is a secure thin shell
+for `https://app.rcpexim.com`; build it on Windows with `npm run package -w @dhakad/desktop`. The
+unsigned installer is written to `apps/desktop/release` and may trigger Windows SmartScreen until a
+trusted code-signing certificate is configured.

@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "echo No desktop tests required in Phase 1",
-    "package": "npm run build && cross-env VITE_APP_BASE=./ npm run build -w @dhakad/frontend && electron-builder --win"
+    "package": "npm run build && electron-builder --win"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
@@ -30,12 +30,24 @@
     ],
     "extraResources": [
       {
-        "from": "../frontend/dist",
-        "to": "frontend"
+        "from": "resources/offline.html",
+        "to": "offline.html"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "artifactName": "Dhakad-Grading-Plant-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dhakad Grading Plant",
+      "uninstallDisplayName": "Dhakad Grading Plant"
     }
   },
   "description": "Windows desktop shell for Dhakad Grading Plant",

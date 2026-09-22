@@ -12,7 +12,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icons/dhakad-logo.png'],
+      includeAssets: [
+        'icons/dhakad-logo.png',
+        'icons/pwa-192.png',
+        'icons/pwa-512.png',
+        'icons/pwa-maskable-512.png',
+        'icons/apple-touch-icon.png',
+      ],
       manifest: {
         name: 'Dhakad Grading Plant',
         short_name: 'Dhakad Plant',
@@ -23,7 +29,14 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         icons: [
-          { src: 'icons/dhakad-logo.png', sizes: '1254x1254', type: 'image/png', purpose: 'any' },
+          { src: 'icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          {
+            src: 'icons/pwa-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png}'], navigateFallback: '/index.html' },
