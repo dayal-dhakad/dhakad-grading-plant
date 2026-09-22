@@ -7,7 +7,7 @@ export const BrandMark = ({
 }) => (
   <img
     className={`shrink-0 object-contain ${large ? 'size-28 sm:size-56' : compact ? 'size-10' : 'size-20'}`}
-    src={`${import.meta.env.BASE_URL}icons/dhakad-logo.png`}
+    src="/icons/dhakad-logo.png"
     alt="Dhakad Grading Plant logo"
   />
 );
