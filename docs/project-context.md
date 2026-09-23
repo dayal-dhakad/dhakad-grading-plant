@@ -41,7 +41,7 @@ The primary users work in a local/village business environment. Optimize for lar
 - Dedicated detail pages must support browser/app back navigation to the originating list.
 - Admin and staff use separate role-specific navigation and landing experiences while continuing to share the same React application.
 - Authentication has a dedicated `/login` route. Unauthenticated workspace routes redirect there, and authenticated users visiting it are redirected to their role-specific landing page.
-- The admin sidebar contains Dashboard, Staff, Customers, Grading Settings, and Entries.
+- The admin sidebar order is Dashboard, Entries, Payments, Expenses, Customers, Staff, Reports, Grading Settings, Seeds & Stock, and Payment Accounts.
 - The staff landing page is the entry workspace. The staff sidebar provides New Entry and My Entries.
 - Entry workspaces use top-level Grading and Seeds tabs. Seed catalog, units, and stock behavior are
   confirmed in `docs/phase-10-seed-requirements.md`; seed billing remains deferred to Phase 12.
@@ -94,6 +94,7 @@ The primary users work in a local/village business environment. Optimize for lar
 - My Entries lists only entries created by the signed-in staff member.
 - Staff can revise their own entries with a mandatory reason and complete revision history.
 - Staff cannot manage staff accounts, browse or edit customers globally, grading settings, or all-business entry views. Their customer permission is limited to creating a customer during entry capture.
+- Staff can add expenses and view only the expenses they personally recorded. Only administrators can edit expenses or view the business-wide expense list.
 
 ### Dues
 

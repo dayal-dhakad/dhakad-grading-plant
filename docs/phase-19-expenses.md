@@ -4,8 +4,9 @@ Status: implemented and verified locally on 2026-09-23.
 
 ## Decisions and scope
 
-- Added a generic administrator-only Expenses workspace. The interface does not label expenses as
-  grading or seed expenses, and expenses are not linked to either business module.
+- Added a generic Expenses workspace. Administrators see the business-wide list and may edit
+  expenses; staff may add expenses and see only records they personally created. The interface does
+  not label expenses as grading or seed expenses, and expenses are not linked to either module.
 - Expense entry captures date, amount, category, optional paid-to/name, and optional notes.
 - Categories are Worker payment, Electricity bill, Machine parts, Tea / refreshments, and Other.
   Other requires a descriptive category name.
@@ -22,7 +23,8 @@ Status: implemented and verified locally on 2026-09-23.
 - `POST /api/v1/expenses`
 - `PATCH /api/v1/expenses/:id`
 
-All routes require the `ADMIN` role and validate boundaries with strict Zod schemas.
+All routes require authentication and validate boundaries with strict Zod schemas. Listing is
+scoped to the signed-in staff member unless the user is an administrator; editing requires `ADMIN`.
 
 ## Verification
 

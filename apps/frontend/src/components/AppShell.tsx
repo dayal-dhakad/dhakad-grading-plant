@@ -5,20 +5,21 @@ import { BrandMark } from './BrandMark';
 
 const adminItems = [
   { label: 'Dashboard', path: '/admin', icon: 'dashboard', enabled: true },
-  { label: 'Staff', path: '/admin/staff', icon: 'staff', enabled: true },
-  { label: 'Customers', path: '/admin/customers', icon: 'customers', enabled: true },
-  { label: 'Grading Settings', path: '/admin/grading-settings', icon: 'settings', enabled: true },
-  { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
   { label: 'Entries', path: '/admin/entries', icon: 'entries', enabled: true },
   { label: 'Payments', path: '/admin/payments', icon: 'payments', enabled: true },
-  { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
   { label: 'Expenses', path: '/admin/expenses', icon: 'expenses', enabled: true },
+  { label: 'Customers', path: '/admin/customers', icon: 'customers', enabled: true },
+  { label: 'Staff', path: '/admin/staff', icon: 'staff', enabled: true },
   { label: 'Reports', path: '/admin/reports', icon: 'dashboard', enabled: true },
+  { label: 'Grading Settings', path: '/admin/grading-settings', icon: 'settings', enabled: true },
+  { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
+  { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
 ];
 const staffItems = [
   { label: 'New Entry', path: '/staff/new-entry', icon: 'new-entry', enabled: true },
   { label: 'My Entries', path: '/staff/entries', icon: 'entries', enabled: true },
   { label: 'Payments', path: '/staff/payments', icon: 'payments', enabled: true },
+  { label: 'Expenses', path: '/staff/expenses', icon: 'expenses', enabled: true },
 ];
 
 const SidebarIcon = ({ name }: { name: string }) => {

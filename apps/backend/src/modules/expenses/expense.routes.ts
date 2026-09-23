@@ -18,26 +18,29 @@ const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   return result.data;
 };
 export const expenseRouter = Router();
-expenseRouter.use(requireAuth, requireRole(Role.ADMIN));
+expenseRouter.use(requireAuth);
 expenseRouter.get('/', async (req, res, next) => {
   try {
-    res.json(await listExpenses(parse(ExpenseListQuerySchema, req.query)));
+    res.json(
+      await listExpenses(
+        parse(ExpenseListQuerySchema, req.query),
+        req.authUser!.role === Role.STAFF ? req.authUser!.id : undefined,
+      ),
+    );
   } catch (e) {
     next(e);
   }
 });
 expenseRouter.post('/', async (req, res, next) => {
   try {
-    res
-      .status(201)
-      .json({
-        expense: await createExpense(parse(CreateExpenseSchema, req.body), req.authUser!.id),
-      });
+    res.status(201).json({
+      expense: await createExpense(parse(CreateExpenseSchema, req.body), req.authUser!.id),
+    });
   } catch (e) {
     next(e);
   }
 });
-expenseRouter.patch('/:id', async (req, res, next) => {
+expenseRouter.patch('/:id', requireRole(Role.ADMIN), async (req, res, next) => {
   try {
     res.json({
       expense: await updateExpense(

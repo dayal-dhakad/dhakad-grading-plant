@@ -98,6 +98,7 @@ export const AppRouter = () => (
         <Route path="staff/seed-bills/:id/edit" element={<EditSeedBillPage />} />
         <Route path="staff/seed-bills/:id/history" element={<SeedBillRevisionHistoryPage />} />
         <Route path="staff/payments" element={<PaymentsPage />} />
+        <Route path="staff/expenses" element={<ExpensesPage staff />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

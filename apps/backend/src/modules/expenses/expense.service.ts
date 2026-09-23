@@ -36,8 +36,9 @@ const clean = <T extends CreateExpenseInput | UpdateExpenseInput>(input: T) => (
   paidTo: input.paidTo || null,
   notes: input.notes || null,
 });
-export const listExpenses = async (query: ExpenseListQuery) => {
+export const listExpenses = async (query: ExpenseListQuery, createdById?: string) => {
   const where: Prisma.ExpenseWhereInput = {
+    ...(createdById ? { createdById } : {}),
     ...(query.category ? { category: query.category } : {}),
     ...(query.from || query.to
       ? {

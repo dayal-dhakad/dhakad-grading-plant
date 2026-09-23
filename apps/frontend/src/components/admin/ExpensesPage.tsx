@@ -26,7 +26,7 @@ const label = (value: ExpenseCategory, other: string | null) =>
 const rupees = (value: string) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(value));
 const today = () => new Date().toISOString().slice(0, 10);
-export const ExpensesPage = () => {
+export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [from, setFrom] = useState('');
@@ -51,7 +51,11 @@ export const ExpensesPage = () => {
         <div>
           <p className="card-label">Business costs</p>
           <h1 className="mt-1 text-3xl font-bold">Expenses</h1>
-          <p className="mt-2 text-sm text-stone-600">Record and review day-to-day expenses.</p>
+          <p className="mt-2 text-sm text-stone-600">
+            {staff
+              ? 'Record and review expenses added by you.'
+              : 'Record and review day-to-day expenses.'}
+          </p>
         </div>
         <button
           className="primary-button"
@@ -63,29 +67,29 @@ export const ExpensesPage = () => {
           Add expense
         </button>
       </header>
-      <section className="card grid gap-4 sm:grid-cols-3">
-        <label className="field-label">
+      <section className="card grid grid-cols-2 gap-2 p-3 sm:flex sm:items-end sm:gap-4 sm:p-5">
+        <label className="field-label min-w-0 sm:w-44">
           From
           <input
-            className="field mt-2"
+            className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
             type="date"
             value={from}
             onChange={(e) => filter(setFrom)(e.target.value)}
           />
         </label>
-        <label className="field-label">
+        <label className="field-label min-w-0 sm:w-44">
           To
           <input
-            className="field mt-2"
+            className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
             type="date"
             value={to}
             onChange={(e) => filter(setTo)(e.target.value)}
           />
         </label>
-        <label className="field-label">
+        <label className="field-label col-span-2 min-w-0 sm:w-56">
           Category
           <select
-            className="field mt-2"
+            className="field mt-1 py-2 sm:mt-2"
             value={category}
             onChange={(e) => {
               setCategory(e.target.value as ExpenseCategory | '');
@@ -123,7 +127,7 @@ export const ExpensesPage = () => {
               <th>Paid to</th>
               <th>Notes</th>
               <th className="text-right">Amount</th>
-              <th>Actions</th>
+              {!staff && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -135,17 +139,19 @@ export const ExpensesPage = () => {
                 <td>{x.paidTo || '—'}</td>
                 <td className="max-w-72 truncate">{x.notes || '—'}</td>
                 <td className="text-right font-bold tabular-nums">{rupees(x.amount)}</td>
-                <td>
-                  <button
-                    className="secondary-button min-h-0 px-3 py-2"
-                    onClick={() => {
-                      setEditing(x);
-                      setModal(true);
-                    }}
-                  >
-                    Edit{x.revisionCount ? ` (${x.revisionCount})` : ''}
-                  </button>
-                </td>
+                {!staff && (
+                  <td>
+                    <button
+                      className="secondary-button min-h-0 px-3 py-2"
+                      onClick={() => {
+                        setEditing(x);
+                        setModal(true);
+                      }}
+                    >
+                      Edit{x.revisionCount ? ` (${x.revisionCount})` : ''}
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
