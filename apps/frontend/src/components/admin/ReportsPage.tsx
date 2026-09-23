@@ -20,6 +20,8 @@ const downloadCsv = (report: ReportResponse) => {
     ['Seed quantity (kg)', report.seeds.quantityKg],
     ['Seed net sales', report.seeds.net],
     ['Total billed', report.totalBilled],
+    ['Expenses', report.expenses.total],
+    ['Estimated grading margin', report.expenses.gradingMargin],
     ['Grading paid', report.grading.paid],
     ['Seed paid', report.seeds.paid],
     ['Standalone customer payments', report.payments.standalone.amount],
@@ -32,6 +34,10 @@ const downloadCsv = (report: ReportResponse) => {
     ['Online collected', report.payments.online],
     ['Payment mode needs review', report.payments.unclassified],
     ['Current customer dues', report.dues.total],
+    [],
+    ['Expenses by category'],
+    ['Category', 'Entries', 'Amount'],
+    ...report.expenses.categories.map((row) => [row.label, row.count, row.amount]),
     [],
     ['Payments needing mode review'],
     ['Record', 'Amount'],
@@ -154,6 +160,16 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         note="See source and payment-mode breakdown below"
       />
       <Metric
+        label="Expenses"
+        value={rupees(r.expenses.total)}
+        note={`${r.expenses.count} expense entries`}
+      />
+      <Metric
+        label="Estimated grading margin"
+        value={rupees(r.expenses.gradingMargin)}
+        note="Grading charges minus expenses for the selected dates"
+      />
+      <Metric
         label="Current dues · all time"
         value={rupees(r.dues.total)}
         note={`${r.dues.customers.length} customers with a positive balance`}
@@ -241,6 +257,12 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
       </section>
     )}
     <section className="space-y-5">
+      <ReportTable
+        title="Expenses by category"
+        headers={['Category', 'Entries', 'Amount']}
+        rows={r.expenses.categories.map((x) => [x.label, x.count, rupees(x.amount)])}
+        numericColumns={[1, 2]}
+      />
       <ReportTable
         title="Payment accounts"
         headers={['Account', 'Transactions', 'Amount']}

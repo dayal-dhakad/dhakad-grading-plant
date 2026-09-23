@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import type { CreateCropSettingInput, UpdateCropSettingInput } from '@dhakad/shared';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
+import { createHash } from 'node:crypto';
 const include = { cleaningRateUnit: true } satisfies Prisma.CropInclude;
 const present = (crop: Prisma.CropGetPayload<{ include: typeof include }>) => ({
   id: crop.id,
@@ -28,13 +29,18 @@ const translate = (error: unknown): never => {
     throw new AppError(404, 'CROP_NOT_FOUND', 'Crop was not found');
   throw error;
 };
-const makeCode = (name: string) =>
-  name
+export const makeCropCode = (name: string) => {
+  const readable = name
     .normalize('NFKD')
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_|_$/g, '')
     .toUpperCase()
     .slice(0, 30);
+  return (
+    readable ||
+    `CROP_${createHash('sha256').update(name.normalize('NFC')).digest('hex').slice(0, 16).toUpperCase()}`
+  );
+};
 export const listCropSettings = async () => {
   const [crops, units] = await Promise.all([
     prisma.crop.findMany({ include, orderBy: { name: 'asc' } }),
@@ -46,11 +52,7 @@ export const listCropSettings = async () => {
   };
 };
 export const createCropSetting = async (input: CreateCropSettingInput) => {
-  const code = makeCode(input.name);
-  if (!code)
-    throw new AppError(400, 'CROP_CODE_INVALID', 'Crop name must include letters or numbers', [
-      { path: 'name', message: 'Use a name containing letters or numbers' },
-    ]);
+  const code = makeCropCode(input.name);
   try {
     return present(
       await prisma.crop.create({

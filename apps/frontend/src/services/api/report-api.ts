@@ -10,6 +10,7 @@ export const reportApi = baseApi.injectEndpoints({
     getOverviewReport: builder.query<ReportResponse, ReportQuery>({
       query: (params) => ({ url: '/reports/overview', params: ReportQuerySchema.parse(params) }),
       transformResponse: (value: unknown) => ReportResponseSchema.parse(value),
+      providesTags: [{ type: 'Report', id: 'OVERVIEW' }],
     }),
   }),
 });

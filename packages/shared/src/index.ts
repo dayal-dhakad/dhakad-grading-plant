@@ -119,3 +119,15 @@ export {
   type ReportQuery,
   type ReportResponse,
 } from './report.js';
+export {
+  ExpenseCategorySchema,
+  CreateExpenseSchema,
+  UpdateExpenseSchema,
+  ExpenseSchema,
+  ExpenseListResponseSchema,
+  ExpenseResponseSchema,
+  type Expense,
+  type ExpenseCategory,
+  type CreateExpenseInput,
+  type UpdateExpenseInput,
+} from './expense.js';

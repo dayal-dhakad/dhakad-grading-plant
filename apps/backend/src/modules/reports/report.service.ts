@@ -16,7 +16,7 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     gte: new Date(`${query.from}T00:00:00.000Z`),
     lt: new Date(new Date(`${query.to}T00:00:00.000Z`).getTime() + 86_400_000),
   };
-  const [grading, seedBills, payments, dues, stock, users] = await prisma.$transaction([
+  const [grading, seedBills, payments, dues, stock, users, expenses] = await prisma.$transaction([
     prisma.gradingEntry.findMany({
       where: { serviceDate: serviceRange },
       select: {
@@ -73,6 +73,10 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       _sum: { quantityGrams: true },
     }),
     prisma.user.findMany({ select: { id: true, name: true } }),
+    prisma.expense.findMany({
+      where: { expenseDate: serviceRange },
+      select: { category: true, otherCategory: true, amount: true },
+    }),
   ]);
   const activeGrading = grading.filter((row) => row.status === 'ACTIVE');
   const activeSeeds = seedBills.filter((row) => row.status === 'ACTIVE');
@@ -147,6 +151,29 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
   const accountIds = [
     ...new Set(collections.filter((row) => row.method === 'ONLINE').map((row) => row.accountId)),
   ];
+  const expenseTotal = sum(expenses.map((row) => row.amount));
+  const expenseLabels: Record<string, string> = {
+    WORKER_PAYMENT: 'Worker payment',
+    ELECTRICITY_BILL: 'Electricity bill',
+    MACHINE_PARTS: 'Machine parts',
+    TEA_REFRESHMENTS: 'Tea / refreshments',
+    OTHER: 'Other',
+  };
+  const expenseGroups = new Map<
+    string,
+    { category: string; label: string; values: Prisma.Decimal[] }
+  >();
+  for (const row of expenses) {
+    const key = row.category === 'OTHER' ? `OTHER:${row.otherCategory ?? 'Other'}` : row.category;
+    const group = expenseGroups.get(key) ?? {
+      category: row.category,
+      label:
+        row.category === 'OTHER' ? (row.otherCategory ?? 'Other') : expenseLabels[row.category]!,
+      values: [],
+    };
+    group.values.push(row.amount);
+    expenseGroups.set(key, group);
+  }
   return {
     period: query,
     totalBilled: money(
@@ -156,6 +183,21 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       ]),
     ),
     totalWaived: money(totalWaived),
+    expenses: {
+      count: expenses.length,
+      total: money(expenseTotal),
+      gradingMargin: money(
+        sum(activeGrading.map((row) => row.calculatedAmount)).minus(expenseTotal),
+      ),
+      categories: [...expenseGroups.values()]
+        .map((row) => ({
+          category: row.category,
+          label: row.label,
+          count: row.values.length,
+          amount: money(sum(row.values)),
+        }))
+        .sort((a, b) => Number(b.amount) - Number(a.amount)),
+    },
     grading: {
       count: activeGrading.length,
       quantityQuintals: sum(activeGrading.map((row) => row.quantity)).toFixed(2),

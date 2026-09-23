@@ -18,6 +18,14 @@ describe('report contracts', () => {
       period: { from: '2026-09-01', to: '2026-09-16' },
       totalBilled: '118.00',
       totalWaived: '5.50',
+      expenses: {
+        count: 1,
+        total: '25.00',
+        gradingMargin: '75.00',
+        categories: [
+          { category: 'WORKER_PAYMENT', label: 'Worker payment', count: 1, amount: '25.00' },
+        ],
+      },
       grading: {
         count: 1,
         quantityQuintals: '1.00',

@@ -12,6 +12,7 @@ const adminItems = [
   { label: 'Entries', path: '/admin/entries', icon: 'entries', enabled: true },
   { label: 'Payments', path: '/admin/payments', icon: 'payments', enabled: true },
   { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
+  { label: 'Expenses', path: '/admin/expenses', icon: 'expenses', enabled: true },
   { label: 'Reports', path: '/admin/reports', icon: 'dashboard', enabled: true },
 ];
 const staffItems = [
@@ -58,6 +59,11 @@ const SidebarIcon = ({ name }: { name: string }) => {
       <>
         <rect x="3" y="5" width="18" height="14" rx="2" />
         <path d="M3 10h18M7 15h3" />
+      </>
+    ),
+    expenses: (
+      <>
+        <path d="M4 7h16v12H4zM7 7V5h10v2M8 12h8M8 15h5" />
       </>
     ),
     seeds: (

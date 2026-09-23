@@ -21,6 +21,7 @@ import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
 import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
+import { ExpensesPage } from '@/components/admin/ExpensesPage';
 
 const SessionGate = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
@@ -82,6 +83,7 @@ export const AppRouter = () => (
         <Route path="admin/seeds/:id" element={<SeedDetailPage />} />
         <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
         <Route path="admin/reports" element={<ReportsPage />} />
+        <Route path="admin/expenses" element={<ExpensesPage />} />
         <Route path="admin/entries/:id/history" element={<GradingRevisionHistoryPage admin />} />
         <Route
           path="admin/seed-bills/:id/history"

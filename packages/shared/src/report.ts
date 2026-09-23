@@ -17,6 +17,19 @@ export const ReportResponseSchema = z
     period: z.strictObject({ from: z.iso.date(), to: z.iso.date() }),
     totalBilled: money,
     totalWaived: money,
+    expenses: z.strictObject({
+      count: z.number().int().nonnegative(),
+      total: money,
+      gradingMargin: money,
+      categories: z.array(
+        z.strictObject({
+          category: z.string(),
+          label: z.string(),
+          count: z.number().int().nonnegative(),
+          amount: money,
+        }),
+      ),
+    }),
     grading: z.strictObject({
       count: z.number().int(),
       quantityQuintals: z.string(),
@@ -115,6 +128,25 @@ export const ReportResponseSchema = z
         code: 'custom',
         path: ['totalWaived'],
         message: 'Waiver breakdown does not match total',
+      });
+    const categoryExpenses = report.expenses.categories.reduce(
+      (total, row) => total + cents(row.amount),
+      0n,
+    );
+    if (cents(report.expenses.total) !== categoryExpenses)
+      context.addIssue({
+        code: 'custom',
+        path: ['expenses', 'total'],
+        message: 'Expense category breakdown does not match total',
+      });
+    if (
+      cents(report.expenses.gradingMargin) !==
+      cents(report.grading.amount) - cents(report.expenses.total)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['expenses', 'gradingMargin'],
+        message: 'Grading margin does not match grading charges minus expenses',
       });
   });
 export type ReportQuery = z.infer<typeof ReportQuerySchema>;

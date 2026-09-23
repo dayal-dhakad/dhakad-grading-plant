@@ -94,6 +94,14 @@ enum NotificationEventType {
   DUE_REMINDER
 }
 
+enum ExpenseCategory {
+  WORKER_PAYMENT
+  ELECTRICITY_BILL
+  MACHINE_PARTS
+  TEA_REFRESHMENTS
+  OTHER
+}
+
 model User {
   id                      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   mobile                  String                 @unique @db.VarChar(10)
@@ -116,9 +124,48 @@ model User {
   seedBillRevisions       SeedBillRevision[]
   paymentAccountsCreated  PaymentAccount[]
   notificationsCreated    Notification[]
+  expensesCreated         Expense[]         @relation("ExpenseCreatedBy")
+  expenseRevisions        ExpenseRevision[]
 
   @@index([isActive])
   @@map("users")
+}
+
+model Expense {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expenseNumber Int             @unique @default(autoincrement()) @map("expense_number")
+  expenseDate   DateTime        @map("expense_date") @db.Date
+  category      ExpenseCategory
+  otherCategory String?         @map("other_category") @db.VarChar(100)
+  amount        Decimal         @db.Decimal(12, 2)
+  paidTo        String?         @map("paid_to") @db.VarChar(120)
+  notes         String?         @db.VarChar(500)
+  createdById   String          @map("created_by_id") @db.Uuid
+  createdBy     User            @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  revisions     ExpenseRevision[]
+
+  @@index([expenseDate])
+  @@index([category])
+  @@map("expenses")
+}
+
+model ExpenseRevision {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expenseId      String   @map("expense_id") @db.Uuid
+  expense        Expense  @relation(fields: [expenseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  revisionNumber Int      @map("revision_number")
+  reason         String   @db.VarChar(300)
+  before         Json     @db.JsonB
+  after          Json     @db.JsonB
+  revisedById    String   @map("revised_by_id") @db.Uuid
+  revisedBy      User     @relation(fields: [revisedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([expenseId, revisionNumber])
+  @@index([revisedById])
+  @@map("expense_revisions")
 }
 
 model Session {

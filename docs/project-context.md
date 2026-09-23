@@ -2,7 +2,7 @@
 
 ## Current status
 
-Phases 1 through 13 and Phases 15 through 18 are implemented and verified locally. Phase 18 live
+Phases 1 through 13 and Phases 15 through 19 are implemented and verified locally. Phase 18 live
 VPS/domain rollout remains environment-specific operational work. Phase 14 MSG91 notification code is
 implemented locally, with live delivery verification explicitly deferred until credentials and
 approved templates are available. Phase 15 added administrator reports and CSV export. Phase 16
@@ -82,7 +82,7 @@ The primary users work in a local/village business environment. Optimize for lar
 - Administrator staff-account creation opens in a modal rather than expanding above the table.
 - Each staff name links to a dedicated detail page containing account details, total entry counts, and that staff member's paginated entry history.
 - Customers provides a searchable, filterable, paginated table. Each customer name links to a dedicated customer detail page.
-- Grading Settings lets administrators create crops, configure cleaning rates, and enable or disable crops.
+- Grading Settings lets administrators create crops, configure cleaning rates, and enable or disable crops. Adding and editing crops opens in a modal, and crop display names may use Hindi/Devanagari text.
 - Entries contains Grading and Seed Sale tabs. The grading table includes the staff member, customer, date, calculated amount, paid amount, due amount, payment mode, and status.
 
 ### Staff
@@ -164,6 +164,7 @@ Indian mobile numbers are stored as exactly 10 ASCII digits without `+91`, space
 16. Receipts and printing
 17. Security and testing hardening
 18. Production deployment
+19. Expenses
 
 Each phase requires explicit approval, repository inspection, scoped implementation, applicable verification, a change report, and a review stop. Architecture can prepare extension points, but future features must not be implemented early.
 
