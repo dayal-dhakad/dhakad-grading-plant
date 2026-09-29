@@ -5,6 +5,7 @@ import {
   UpdateExpenseSchema,
   type CreateExpenseInput,
   type Expense,
+  type ExpenseArea,
   type ExpenseCategory,
   type UpdateExpenseInput,
 } from '@dhakad/shared';
@@ -12,6 +13,7 @@ import { baseApi } from './base-api';
 export type ExpenseQuery = {
   from?: string;
   to?: string;
+  area?: ExpenseArea;
   category?: ExpenseCategory;
   page: number;
   pageSize: number;

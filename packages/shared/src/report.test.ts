@@ -21,7 +21,11 @@ describe('report contracts', () => {
       expenses: {
         count: 1,
         total: '25.00',
+        grading: { count: 1, amount: '25.00' },
+        seeds: { count: 0, amount: '0.00' },
+        adminPersonal: { count: 0, amount: '0.00' },
         gradingMargin: '75.00',
+        seedMargin: '18.00',
         categories: [
           { category: 'WORKER_PAYMENT', label: 'Worker payment', count: 1, amount: '25.00' },
         ],
@@ -31,6 +35,7 @@ describe('report contracts', () => {
         quantityQuintals: '1.00',
         amount: '100.00',
         paid: '80.50',
+        due: '16.50',
         waived: '3.00',
         cancelledCount: 0,
       },
@@ -40,6 +45,7 @@ describe('report contracts', () => {
         discount: '2.00',
         net: '18.00',
         paid: '15.00',
+        due: '1.00',
         waived: '2.00',
         quantityKg: '1.000',
         cancelledCount: 0,

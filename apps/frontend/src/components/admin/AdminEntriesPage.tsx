@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   useCancelGradingEntryMutation,
   useGetGradingEntriesQuery,
@@ -12,7 +12,8 @@ import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
 export const AdminEntriesPage = () => {
-  const [tab, setTab] = useState<'grading' | 'seeds'>('grading');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'seeds' ? 'seeds' : 'grading';
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -45,7 +46,7 @@ export const AdminEntriesPage = () => {
           type="button"
           aria-pressed={tab === 'grading'}
           className={`min-w-20 rounded-lg px-3 py-2 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${tab === 'grading' ? 'bg-brand-700 text-white shadow-sm' : 'text-stone-600 hover:bg-white hover:text-stone-900'}`}
-          onClick={() => setTab('grading')}
+          onClick={() => setSearchParams({ tab: 'grading' })}
         >
           Grading
         </button>
@@ -53,7 +54,7 @@ export const AdminEntriesPage = () => {
           type="button"
           aria-pressed={tab === 'seeds'}
           className={`min-w-20 rounded-lg px-3 py-2 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${tab === 'seeds' ? 'bg-brand-700 text-white shadow-sm' : 'text-stone-600 hover:bg-white hover:text-stone-900'}`}
-          onClick={() => setTab('seeds')}
+          onClick={() => setSearchParams({ tab: 'seeds' })}
         >
           Seed Sale
         </button>

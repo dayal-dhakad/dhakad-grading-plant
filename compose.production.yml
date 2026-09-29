@@ -60,11 +60,13 @@ services:
       FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
       FAST2SMS_PHONE_NUMBER_ID: ${FAST2SMS_PHONE_NUMBER_ID:-}
       FAST2SMS_API_VERSION: ${FAST2SMS_API_VERSION:-v26.0}
-      FAST2SMS_GRADING_TEMPLATE_NAME: ${FAST2SMS_GRADING_TEMPLATE_NAME:-crop_grading_completed}
-      FAST2SMS_SEED_TEMPLATE_NAME: ${FAST2SMS_SEED_TEMPLATE_NAME:-seed_bill_confirmation}
-      FAST2SMS_DUE_REMINDER_TEMPLATE_NAME: ${FAST2SMS_DUE_REMINDER_TEMPLATE_NAME:-payment_due_reminder}
+      FAST2SMS_GRADING_TEMPLATE_NAME: ${FAST2SMS_GRADING_TEMPLATE_NAME:-crop_grading_completed_hindi_new}
+      FAST2SMS_SEED_TEMPLATE_NAME: ${FAST2SMS_SEED_TEMPLATE_NAME:-seed_bill_confirmation_new}
+      FAST2SMS_DUE_REMINDER_TEMPLATE_NAME: ${FAST2SMS_DUE_REMINDER_TEMPLATE_NAME:-payment_due_reminder_new}
       FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL: ${FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL:-}
-      FAST2SMS_TEMPLATE_LANGUAGE: ${FAST2SMS_TEMPLATE_LANGUAGE:-en}
+      FAST2SMS_GRADING_TEMPLATE_LANGUAGE: ${FAST2SMS_GRADING_TEMPLATE_LANGUAGE:-hi}
+      FAST2SMS_SEED_TEMPLATE_LANGUAGE: ${FAST2SMS_SEED_TEMPLATE_LANGUAGE:-en}
+      FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE: ${FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE:-hi}
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,7 +94,14 @@ services:
     restart: 'no'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-    command: ['./apps/backend/node_modules/.bin/prisma', 'migrate', 'deploy', '--schema', 'apps/backend/prisma/schema.prisma']
+    command:
+      [
+        './apps/backend/node_modules/.bin/prisma',
+        'migrate',
+        'deploy',
+        '--schema',
+        'apps/backend/prisma/schema.prisma',
+      ]
     depends_on:
       postgres:
         condition: service_healthy

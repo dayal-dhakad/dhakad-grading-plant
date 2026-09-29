@@ -3,9 +3,9 @@
 ## Current status
 
 Phases 1 through 13 and Phases 15 through 19 are implemented and verified locally. Phase 18 live
-VPS/domain rollout remains environment-specific operational work. Phase 14 MSG91 notification code is
-implemented locally, with live delivery verification explicitly deferred until credentials and
-approved templates are available. Phase 15 added administrator reports and CSV export. Phase 16
+VPS/domain rollout remains environment-specific operational work. Phase 14 notification code is
+implemented locally and the Fast2SMS WhatsApp templates are verified; live delivery verification
+remains environment-specific operational work. Phase 15 added administrator reports and CSV export. Phase 16
 added printable grading, seed-sale, and payment receipts in A4 and 80mm thermal formats. Phase 17
 added API security headers, layered rate limiting, private-response cache controls, malformed request
 handling, early invalid-session rejection, and security regression tests.
@@ -95,6 +95,9 @@ The primary users work in a local/village business environment. Optimize for lar
 - Staff can revise their own entries with a mandatory reason and complete revision history.
 - Staff cannot manage staff accounts, browse or edit customers globally, grading settings, or all-business entry views. Their customer permission is limited to creating a customer during entry capture.
 - Staff can add expenses and view only the expenses they personally recorded. Only administrators can edit expenses or view the business-wide expense list.
+- Every expense is classified as Grading, Seeds, or Admin personal. Staff may record only Grading
+  and Seeds expenses; Admin personal expenses are restricted to administrators. Reports and the
+  dashboard show the three expense areas separately.
 
 ### Dues
 

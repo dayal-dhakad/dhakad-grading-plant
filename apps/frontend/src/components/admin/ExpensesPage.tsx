@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CreateExpenseSchema,
   UpdateExpenseSchema,
   type Expense,
+  type ExpenseArea,
   type ExpenseCategory,
 } from '@dhakad/shared';
 import { MoneyInput } from '@/components/form/MoneyInput';
@@ -21,28 +23,67 @@ const categories: { value: ExpenseCategory; label: string }[] = [
   { value: 'TEA_REFRESHMENTS', label: 'Tea / refreshments' },
   { value: 'OTHER', label: 'Other' },
 ];
+const areas: { value: ExpenseArea; label: string }[] = [
+  { value: 'GRADING', label: 'Grading' },
+  { value: 'SEEDS', label: 'Seeds' },
+  { value: 'ADMIN_PERSONAL', label: 'Admin personal' },
+];
+const areaLabel = (value: ExpenseArea) => areas.find((area) => area.value === value)!.label;
 const label = (value: ExpenseCategory, other: string | null) =>
   value === 'OTHER' ? (other ?? 'Other') : categories.find((x) => x.value === value)!.label;
 const rupees = (value: string) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(value));
-const today = () => new Date().toISOString().slice(0, 10);
+type DatePreset = 'today' | 'month' | 'year' | 'custom';
+const localDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const today = () => localDate();
 export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const current = new Date();
+  const [datePreset, setDatePreset] = useState<DatePreset>('month');
+  const [from, setFrom] = useState(
+    localDate(new Date(current.getFullYear(), current.getMonth(), 1)),
+  );
+  const [to, setTo] = useState(localDate(current));
+  const requestedArea = searchParams.get('area');
+  const [area, setArea] = useState<ExpenseArea | ''>(
+    requestedArea === 'GRADING' || requestedArea === 'SEEDS' || requestedArea === 'ADMIN_PERSONAL'
+      ? requestedArea
+      : '',
+  );
   const [category, setCategory] = useState<ExpenseCategory | ''>('');
   const [editing, setEditing] = useState<Expense>();
   const [modal, setModal] = useState(false);
-  const { data, isLoading, isError } = useGetExpensesQuery({
-    page,
-    pageSize,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
-    ...(category ? { category } : {}),
-  });
-  const filter = (setter: (v: string) => void) => (value: string) => {
-    setter(value);
+  const isDateRangeValid = Boolean(from && to && from <= to);
+  const { data, isLoading, isError } = useGetExpensesQuery(
+    {
+      page,
+      pageSize,
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      ...(area ? { area } : {}),
+      ...(category ? { category } : {}),
+    },
+    { skip: !isDateRangeValid },
+  );
+  const selectDatePreset = (preset: Exclude<DatePreset, 'custom'>) => {
+    const date = new Date();
+    const end = localDate(date);
+    const start =
+      preset === 'today'
+        ? end
+        : preset === 'month'
+          ? localDate(new Date(date.getFullYear(), date.getMonth(), 1))
+          : localDate(new Date(date.getFullYear(), 0, 1));
+    setDatePreset(preset);
+    setFrom(start);
+    setTo(end);
     setPage(1);
   };
   return (
@@ -67,25 +108,74 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
           Add expense
         </button>
       </header>
-      <section className="card grid grid-cols-2 gap-2 p-3 sm:flex sm:items-end sm:gap-4 sm:p-5">
-        <label className="field-label min-w-0 sm:w-44">
-          From
-          <input
-            className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
-            type="date"
-            value={from}
-            onChange={(e) => filter(setFrom)(e.target.value)}
-          />
+      <section className="card grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4 sm:p-5">
+        <label className="field-label col-span-2 min-w-0 sm:w-48">
+          Date period
+          <select
+            className="field mt-1 py-2 sm:mt-2"
+            value={datePreset}
+            onChange={(event) => {
+              const preset = event.target.value as DatePreset;
+              if (preset === 'custom') setDatePreset('custom');
+              else selectDatePreset(preset);
+            }}
+          >
+            <option value="today">Today</option>
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+            <option value="custom">Custom date</option>
+          </select>
         </label>
-        <label className="field-label min-w-0 sm:w-44">
-          To
-          <input
-            className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
-            type="date"
-            value={to}
-            onChange={(e) => filter(setTo)(e.target.value)}
-          />
+        <label className="field-label col-span-2 min-w-0 sm:w-48">
+          Area
+          <select
+            className="field mt-1 py-2 sm:mt-2"
+            value={area}
+            onChange={(e) => {
+              const value = e.target.value as ExpenseArea | '';
+              setArea(value);
+              setSearchParams(value ? { area: value } : {});
+              setPage(1);
+            }}
+          >
+            <option value="">All areas</option>
+            {areas
+              .filter((option) => !staff || option.value !== 'ADMIN_PERSONAL')
+              .map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+          </select>
         </label>
+        {datePreset === 'custom' && (
+          <>
+            <label className="field-label min-w-0 sm:w-44">
+              From
+              <input
+                className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
+                type="date"
+                value={from}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className="field-label min-w-0 sm:w-44">
+              To
+              <input
+                className="field mt-1 min-w-0 px-2 py-2 sm:mt-2"
+                type="date"
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </>
+        )}
         <label className="field-label col-span-2 min-w-0 sm:w-56">
           Category
           <select
@@ -105,6 +195,11 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
           </select>
         </label>
       </section>
+      {!isDateRangeValid && (
+        <p className="card text-sm font-semibold text-red-700">
+          Select a valid date range with the end date on or after the start date.
+        </p>
+      )}
       <section className="grid gap-3 sm:grid-cols-2">
         <article className="card">
           <p className="card-label">Matching expenses</p>
@@ -123,6 +218,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
             <tr>
               <th>No.</th>
               <th>Date</th>
+              <th>Area</th>
               <th>Category</th>
               <th>Paid to</th>
               <th>Notes</th>
@@ -135,6 +231,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
               <tr key={x.id}>
                 <td className="font-bold">EXP-{String(x.expenseNumber).padStart(6, '0')}</td>
                 <td>{x.expenseDate}</td>
+                <td className="font-semibold">{areaLabel(x.area)}</td>
                 <td className="font-semibold">{label(x.category, x.otherCategory)}</td>
                 <td>{x.paidTo || '—'}</td>
                 <td className="max-w-72 truncate">{x.notes || '—'}</td>
@@ -176,13 +273,26 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
         )}
       </section>
       {modal && (
-        <ExpenseModal {...(editing ? { expense: editing } : {})} onClose={() => setModal(false)} />
+        <ExpenseModal
+          {...(editing ? { expense: editing } : {})}
+          staff={staff}
+          onClose={() => setModal(false)}
+        />
       )}
     </div>
   );
 };
-const ExpenseModal = ({ expense, onClose }: { expense?: Expense; onClose: () => void }) => {
+const ExpenseModal = ({
+  expense,
+  staff,
+  onClose,
+}: {
+  expense?: Expense;
+  staff: boolean;
+  onClose: () => void;
+}) => {
   const [expenseDate, setDate] = useState(expense?.expenseDate ?? today());
+  const [area, setArea] = useState<ExpenseArea>(expense?.area ?? 'GRADING');
   const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? 'WORKER_PAYMENT');
   const [otherCategory, setOther] = useState(expense?.otherCategory ?? '');
   const [amount, setAmount] = useState(expense?.amount ?? '');
@@ -198,6 +308,7 @@ const ExpenseModal = ({ expense, onClose }: { expense?: Expense; onClose: () => 
     setMessage('');
     const base = {
       expenseDate,
+      area,
       category,
       otherCategory: category === 'OTHER' ? otherCategory : null,
       amount,
@@ -275,6 +386,27 @@ const ExpenseModal = ({ expense, onClose }: { expense?: Expense; onClose: () => 
               }}
             />
             <FieldError message={fieldErrors.expenseDate} />
+          </label>
+          <label className="field-label">
+            Area *
+            <select
+              className={`field mt-2${errorClass('area')}`}
+              value={area}
+              aria-invalid={Boolean(fieldErrors.area)}
+              onChange={(e) => {
+                setArea(e.target.value as ExpenseArea);
+                clearError('area');
+              }}
+            >
+              {areas
+                .filter((option) => !staff || option.value !== 'ADMIN_PERSONAL')
+                .map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+            </select>
+            <FieldError message={fieldErrors.area} />
           </label>
           <label className="field-label">
             Category *

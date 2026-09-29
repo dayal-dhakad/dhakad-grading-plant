@@ -21,7 +21,11 @@ const downloadCsv = (report: ReportResponse) => {
     ['Seed net sales', report.seeds.net],
     ['Total billed', report.totalBilled],
     ['Expenses', report.expenses.total],
+    ['Grading expenses', report.expenses.grading.amount],
+    ['Seed expenses', report.expenses.seeds.amount],
+    ['Admin personal expenses', report.expenses.adminPersonal.amount],
     ['Estimated grading margin', report.expenses.gradingMargin],
+    ['Estimated seed margin', report.expenses.seedMargin],
     ['Grading paid', report.grading.paid],
     ['Seed paid', report.seeds.paid],
     ['Standalone customer payments', report.payments.standalone.amount],
@@ -160,14 +164,34 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         note="See source and payment-mode breakdown below"
       />
       <Metric
-        label="Expenses"
+        label="Total expenses"
         value={rupees(r.expenses.total)}
         note={`${r.expenses.count} expense entries`}
       />
       <Metric
+        label="Grading expenses"
+        value={rupees(r.expenses.grading.amount)}
+        note={`${r.expenses.grading.count} expense entries`}
+      />
+      <Metric
+        label="Seed expenses"
+        value={rupees(r.expenses.seeds.amount)}
+        note={`${r.expenses.seeds.count} expense entries`}
+      />
+      <Metric
+        label="Admin personal expenses"
+        value={rupees(r.expenses.adminPersonal.amount)}
+        note={`${r.expenses.adminPersonal.count} expense entries`}
+      />
+      <Metric
         label="Estimated grading margin"
         value={rupees(r.expenses.gradingMargin)}
-        note="Grading charges minus expenses for the selected dates"
+        note="Grading charges minus grading expenses for the selected dates"
+      />
+      <Metric
+        label="Estimated seed margin"
+        value={rupees(r.expenses.seedMargin)}
+        note="Seed sales minus seed expenses for the selected dates"
       />
       <Metric
         label="Current dues · all time"

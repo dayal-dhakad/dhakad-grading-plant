@@ -3,6 +3,7 @@ import { CreateExpenseSchema, UpdateExpenseSchema } from './expense.js';
 describe('expense contracts', () => {
   const valid = {
     expenseDate: '2026-09-23',
+    area: 'GRADING',
     category: 'WORKER_PAYMENT',
     amount: '500.00',
   } as const;
@@ -12,6 +13,8 @@ describe('expense contracts', () => {
     expect(CreateExpenseSchema.safeParse({ ...valid, category: 'OTHER' }).success).toBe(false));
   it('requires an edit reason', () =>
     expect(UpdateExpenseSchema.safeParse(valid).success).toBe(false));
+  it('rejects an unknown expense area', () =>
+    expect(CreateExpenseSchema.safeParse({ ...valid, area: 'BUSINESS' }).success).toBe(false));
   it('rejects unknown fields', () =>
     expect(CreateExpenseSchema.safeParse({ ...valid, unexpected: true }).success).toBe(false));
 });

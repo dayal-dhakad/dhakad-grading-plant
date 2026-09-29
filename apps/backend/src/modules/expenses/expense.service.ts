@@ -1,5 +1,5 @@
 import type { CreateExpenseInput, UpdateExpenseInput } from '@dhakad/shared';
-import { Prisma } from '@prisma/client';
+import { ExpenseArea, Prisma, Role } from '@prisma/client';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { ExpenseListQuery } from './expense.schemas.js';
@@ -12,12 +12,13 @@ const include = {
 type ExpenseRow = Prisma.ExpenseGetPayload<{ include: typeof include }>;
 type SnapshotRow = Pick<
   ExpenseRow,
-  'expenseDate' | 'category' | 'otherCategory' | 'amount' | 'paidTo' | 'notes'
+  'expenseDate' | 'area' | 'category' | 'otherCategory' | 'amount' | 'paidTo' | 'notes'
 >;
 const present = (row: ExpenseRow) => ({
   id: row.id,
   expenseNumber: row.expenseNumber,
   expenseDate: day(row.expenseDate),
+  area: row.area,
   category: row.category,
   otherCategory: row.otherCategory,
   amount: row.amount.toFixed(2),
@@ -30,6 +31,7 @@ const present = (row: ExpenseRow) => ({
 });
 const clean = <T extends CreateExpenseInput | UpdateExpenseInput>(input: T) => ({
   expenseDate: new Date(`${input.expenseDate}T00:00:00.000Z`),
+  area: input.area,
   category: input.category,
   otherCategory: input.category === 'OTHER' ? (input.otherCategory ?? null) : null,
   amount: new Prisma.Decimal(input.amount),
@@ -39,6 +41,16 @@ const clean = <T extends CreateExpenseInput | UpdateExpenseInput>(input: T) => (
 export const listExpenses = async (query: ExpenseListQuery, createdById?: string) => {
   const where: Prisma.ExpenseWhereInput = {
     ...(createdById ? { createdById } : {}),
+    ...(createdById
+      ? {
+          area:
+            query.area === ExpenseArea.ADMIN_PERSONAL
+              ? { equals: ExpenseArea.ADMIN_PERSONAL, not: ExpenseArea.ADMIN_PERSONAL }
+              : (query.area ?? { not: ExpenseArea.ADMIN_PERSONAL }),
+        }
+      : query.area
+        ? { area: query.area }
+        : {}),
     ...(query.category ? { category: query.category } : {}),
     ...(query.from || query.to
       ? {
@@ -68,8 +80,13 @@ export const listExpenses = async (query: ExpenseListQuery, createdById?: string
     pageSize: query.pageSize,
   };
 };
-export const createExpense = async (input: CreateExpenseInput, userId: string) =>
-  present(await prisma.expense.create({ data: { ...clean(input), createdById: userId }, include }));
+export const createExpense = async (input: CreateExpenseInput, userId: string, role: Role) => {
+  if (input.area === ExpenseArea.ADMIN_PERSONAL && role !== Role.ADMIN)
+    throw new AppError(403, 'FORBIDDEN', 'Only administrators can record personal expenses');
+  return present(
+    await prisma.expense.create({ data: { ...clean(input), createdById: userId }, include }),
+  );
+};
 export const updateExpense = async (id: string, input: UpdateExpenseInput, userId: string) =>
   prisma.$transaction(
     async (tx) => {
@@ -78,6 +95,7 @@ export const updateExpense = async (id: string, input: UpdateExpenseInput, userI
       const data = clean(input);
       const snapshot = (x: SnapshotRow) => ({
         expenseDate: day(x.expenseDate),
+        area: x.area,
         category: x.category,
         otherCategory: x.otherCategory,
         amount: x.amount.toFixed(2),

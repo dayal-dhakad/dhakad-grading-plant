@@ -1,17 +1,20 @@
 # Phase 14 — MSG91 SMS and WhatsApp Notifications
 
-Status: implementation complete locally on 2026-09-14; live MSG91 delivery verification pending credentials and approved templates.
+Status: implementation complete locally; Fast2SMS WhatsApp templates verified on 2026-09-29;
+live provider delivery verification remains pending.
 
 ## Fast2SMS WhatsApp update
 
 - Fast2SMS now handles WhatsApp template delivery; MSG91 remains the SMS provider.
-- `GRADING_CREATED` maps to the approved `crop_grading_completed` template.
-- `SEED_BILL_CREATED` maps to `seed_bill_confirmation`; live delivery remains deferred until the
-  template is approved by Fast2SMS/Meta.
+- `GRADING_CREATED` maps to the verified Hindi `crop_grading_completed_hindi_new` template and sends
+  customer name, grading receipt number, total, paid, due, and a secure public receipt URL.
+- `SEED_BILL_CREATED` maps to the verified English `seed_bill_confirmation_new` template.
 - Seed confirmation messages contain a random, unguessable public receipt URL. The public endpoint
   exposes only receipt data and does not require or grant an application session.
-- Fast2SMS configuration uses `FAST2SMS_API_KEY`, `FAST2SMS_PHONE_NUMBER_ID`, API version,
-  template-name, and template-language environment variables.
+- Fast2SMS configuration uses `FAST2SMS_API_KEY`, `FAST2SMS_PHONE_NUMBER_ID`, API version, and
+  separate template-name and language variables for grading, seed, and due-reminder messages.
+- The connected WhatsApp sender is `+91 99819 80308` with Phone Number ID
+  `1122050301001410`. The seed message configuration is unchanged.
 - The image-header due-reminder template additionally requires a public HTTPS header-image URL.
 
 ## Implemented scope
@@ -50,6 +53,15 @@ channels, missing channel consent, and customers without an outstanding balance.
 - `MSG91_WHATSAPP_INTEGRATED_NUMBER`
 - `MSG91_WHATSAPP_TEMPLATE_NAME`
 - `MSG91_WHATSAPP_TEMPLATE_LANGUAGE`
+- `FAST2SMS_API_KEY`
+- `FAST2SMS_PHONE_NUMBER_ID=1122050301001410`
+- `FAST2SMS_GRADING_TEMPLATE_NAME=crop_grading_completed_hindi_new`
+- `FAST2SMS_GRADING_TEMPLATE_LANGUAGE=hi`
+- `FAST2SMS_SEED_TEMPLATE_NAME=seed_bill_confirmation_new`
+- `FAST2SMS_SEED_TEMPLATE_LANGUAGE=en`
+- `FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_new`
+- `FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE=hi`
+- `FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL`
 
 Secrets belong only in `apps/backend/.env`. The example environment files contain blank
 placeholders.
@@ -70,8 +82,7 @@ placeholders.
 
 ## Remaining phase gate
 
-- Configure a real MSG91 account, DLT SMS Flow, integrated WhatsApp number, and approved utility
-  template.
+- Configure the production credentials for MSG91 SMS and the connected Fast2SMS WhatsApp sender.
 - Send one consented test notification through each channel and confirm the provider accepts the
   configured payload and template-variable order.
 - Configure and verify MSG91 delivery callbacks before promoting SENT records to DELIVERED/READ.

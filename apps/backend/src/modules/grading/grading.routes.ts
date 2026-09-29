@@ -13,6 +13,7 @@ import {
   createGradingEntry,
   getGradingReferences,
   getGradingEntry,
+  getPublicGradingReceipt,
   listGradingEntries,
   listGradingRevisions,
   reviseGradingEntry,
@@ -30,6 +31,14 @@ const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   return result.data;
 };
 export const gradingRouter = Router();
+gradingRouter.get('/public/:token', async (request, response, next) => {
+  try {
+    const { id: token } = parse(GradingIdParamsSchema, { id: request.params.token });
+    response.json({ gradingEntry: await getPublicGradingReceipt(token) });
+  } catch (error) {
+    next(error);
+  }
+});
 gradingRouter.use(requireAuth);
 gradingRouter.get('/references', async (_request, response, next) => {
   try {

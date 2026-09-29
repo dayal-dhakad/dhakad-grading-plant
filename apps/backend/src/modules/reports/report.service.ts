@@ -1,11 +1,13 @@
 import type { ReportQuery, ReportResponse } from '@dhakad/shared';
-import { Prisma } from '@prisma/client';
+import { ExpenseArea, Prisma } from '@prisma/client';
 import { prisma } from '../../shared/database/prisma.js';
 
 const zero = () => new Prisma.Decimal(0);
 const sum = (values: Prisma.Decimal[]) =>
   values.reduce((total, value) => total.plus(value), zero());
 const money = (value: Prisma.Decimal) => value.toFixed(2);
+const positiveRemainder = (amount: Prisma.Decimal, paid: Prisma.Decimal, waived: Prisma.Decimal) =>
+  Prisma.Decimal.max(amount.minus(paid).minus(waived), zero());
 
 export const getOverviewReport = async (query: ReportQuery): Promise<ReportResponse> => {
   const serviceRange = {
@@ -75,7 +77,7 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     prisma.user.findMany({ select: { id: true, name: true } }),
     prisma.expense.findMany({
       where: { expenseDate: serviceRange },
-      select: { category: true, otherCategory: true, amount: true },
+      select: { area: true, category: true, otherCategory: true, amount: true },
     }),
   ]);
   const activeGrading = grading.filter((row) => row.status === 'ACTIVE');
@@ -152,6 +154,10 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     ...new Set(collections.filter((row) => row.method === 'ONLINE').map((row) => row.accountId)),
   ];
   const expenseTotal = sum(expenses.map((row) => row.amount));
+  const expensesFor = (area: ExpenseArea) => expenses.filter((row) => row.area === area);
+  const gradingExpenses = expensesFor(ExpenseArea.GRADING);
+  const seedExpenses = expensesFor(ExpenseArea.SEEDS);
+  const adminPersonalExpenses = expensesFor(ExpenseArea.ADMIN_PERSONAL);
   const expenseLabels: Record<string, string> = {
     WORKER_PAYMENT: 'Worker payment',
     ELECTRICITY_BILL: 'Electricity bill',
@@ -186,8 +192,27 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     expenses: {
       count: expenses.length,
       total: money(expenseTotal),
+      grading: {
+        count: gradingExpenses.length,
+        amount: money(sum(gradingExpenses.map((row) => row.amount))),
+      },
+      seeds: {
+        count: seedExpenses.length,
+        amount: money(sum(seedExpenses.map((row) => row.amount))),
+      },
+      adminPersonal: {
+        count: adminPersonalExpenses.length,
+        amount: money(sum(adminPersonalExpenses.map((row) => row.amount))),
+      },
       gradingMargin: money(
-        sum(activeGrading.map((row) => row.calculatedAmount)).minus(expenseTotal),
+        sum(activeGrading.map((row) => row.calculatedAmount)).minus(
+          sum(gradingExpenses.map((row) => row.amount)),
+        ),
+      ),
+      seedMargin: money(
+        sum(activeSeeds.map((row) => row.netAmount)).minus(
+          sum(seedExpenses.map((row) => row.amount)),
+        ),
       ),
       categories: [...expenseGroups.values()]
         .map((row) => ({
@@ -203,6 +228,13 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       quantityQuintals: sum(activeGrading.map((row) => row.quantity)).toFixed(2),
       amount: money(sum(activeGrading.map((row) => row.calculatedAmount))),
       paid: money(sum(activeGrading.map((row) => row.paidAmount))),
+      due: money(
+        sum(
+          activeGrading.map((row) =>
+            positiveRemainder(row.calculatedAmount, row.paidAmount, row.waivedAmount),
+          ),
+        ),
+      ),
       waived: money(sum(activeGrading.map((row) => row.waivedAmount))),
       cancelledCount: grading.length - activeGrading.length,
     },
@@ -212,6 +244,13 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       discount: money(sum(activeSeeds.map((row) => row.discountAmount))),
       net: money(sum(activeSeeds.map((row) => row.netAmount))),
       paid: money(sum(activeSeeds.map((row) => row.paidAmount))),
+      due: money(
+        sum(
+          activeSeeds.map((row) =>
+            positiveRemainder(row.netAmount, row.paidAmount, row.waivedAmount),
+          ),
+        ),
+      ),
       waived: money(sum(activeSeeds.map((row) => row.waivedAmount))),
       quantityKg: new Prisma.Decimal(
         activeSeeds

@@ -121,6 +121,7 @@ export {
 } from './report.js';
 export {
   ExpenseCategorySchema,
+  ExpenseAreaSchema,
   CreateExpenseSchema,
   UpdateExpenseSchema,
   ExpenseSchema,
@@ -128,6 +129,7 @@ export {
   ExpenseResponseSchema,
   type Expense,
   type ExpenseCategory,
+  type ExpenseArea,
   type CreateExpenseInput,
   type UpdateExpenseInput,
 } from './expense.js';

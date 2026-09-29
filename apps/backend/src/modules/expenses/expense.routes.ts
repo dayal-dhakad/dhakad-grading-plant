@@ -34,7 +34,11 @@ expenseRouter.get('/', async (req, res, next) => {
 expenseRouter.post('/', async (req, res, next) => {
   try {
     res.status(201).json({
-      expense: await createExpense(parse(CreateExpenseSchema, req.body), req.authUser!.id),
+      expense: await createExpense(
+        parse(CreateExpenseSchema, req.body),
+        req.authUser!.id,
+        req.authUser!.role,
+      ),
     });
   } catch (e) {
     next(e);

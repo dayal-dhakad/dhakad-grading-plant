@@ -435,6 +435,23 @@ Set at least:
 - Current MSG91/Fast2SMS credentials and approved template settings
 - Any other values added to `.env.production.example`
 
+For the currently approved Fast2SMS WhatsApp templates, set these exact non-secret values in
+`.env.production` (and set the real API key and public due-reminder header image URL separately):
+
+```dotenv
+FAST2SMS_PHONE_NUMBER_ID=1122050301001410
+FAST2SMS_GRADING_TEMPLATE_NAME=crop_grading_completed_hindi_new
+FAST2SMS_GRADING_TEMPLATE_LANGUAGE=hi
+FAST2SMS_SEED_TEMPLATE_NAME=seed_bill_confirmation_new
+FAST2SMS_SEED_TEMPLATE_LANGUAGE=en
+FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_new
+FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE=hi
+```
+
+The connected sender for that Phone Number ID is `+91 99819 80308`. Fast2SMS Cloud API requests
+use the template names above; the template/message IDs shown in the Fast2SMS dashboard are not sent
+in the API payload.
+
 Use fresh credentials if the old VPS may have been compromised. Validate the file:
 
 ```sh

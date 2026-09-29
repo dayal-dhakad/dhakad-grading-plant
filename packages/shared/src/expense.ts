@@ -7,9 +7,11 @@ export const ExpenseCategorySchema = z.enum([
   'TEA_REFRESHMENTS',
   'OTHER',
 ]);
+export const ExpenseAreaSchema = z.enum(['GRADING', 'SEEDS', 'ADMIN_PERSONAL']);
 const amount = z.string().regex(/^(?!0+(?:\.0{1,2})?$)\d+(\.\d{1,2})?$/, 'Enter a valid amount');
 const fields = {
   expenseDate: z.iso.date(),
+  area: ExpenseAreaSchema,
   category: ExpenseCategorySchema,
   otherCategory: z.string().trim().max(100).nullable().optional(),
   amount,
@@ -38,6 +40,7 @@ export const ExpenseSchema = z.strictObject({
   id: z.uuid(),
   expenseNumber: z.number().int().positive(),
   expenseDate: z.iso.date(),
+  area: ExpenseAreaSchema,
   category: ExpenseCategorySchema,
   otherCategory: z.string().nullable(),
   amount: z.string(),
@@ -60,3 +63,4 @@ export type Expense = z.infer<typeof ExpenseSchema>;
 export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof UpdateExpenseSchema>;
 export type ExpenseCategory = z.infer<typeof ExpenseCategorySchema>;
+export type ExpenseArea = z.infer<typeof ExpenseAreaSchema>;

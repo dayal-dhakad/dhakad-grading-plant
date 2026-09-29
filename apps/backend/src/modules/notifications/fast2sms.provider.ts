@@ -8,7 +8,7 @@ const ResponseSchema = z
   .passthrough();
 
 const variableOrder: Partial<Record<string, string[]>> = {
-  GRADING_CREATED: ['name', 'crop', 'quantity', 'amount', 'paid', 'due'],
+  GRADING_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],
   SEED_BILL_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],
   DUE_REMINDER: ['name', 'amount'],
 };
@@ -28,6 +28,12 @@ export const sendFast2SmsWhatsApp = async (input: {
       : input.eventType === 'SEED_BILL_CREATED'
         ? env.FAST2SMS_SEED_TEMPLATE_NAME
         : env.FAST2SMS_DUE_REMINDER_TEMPLATE_NAME;
+  const templateLanguage =
+    input.eventType === 'GRADING_CREATED'
+      ? env.FAST2SMS_GRADING_TEMPLATE_LANGUAGE
+      : input.eventType === 'SEED_BILL_CREATED'
+        ? env.FAST2SMS_SEED_TEMPLATE_LANGUAGE
+        : env.FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE;
   if (input.eventType === 'DUE_REMINDER' && !env.FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL)
     throw new Error('Fast2SMS due-reminder header image is not configured');
   const components = [
@@ -65,7 +71,7 @@ export const sendFast2SmsWhatsApp = async (input: {
         type: 'template',
         template: {
           name: templateName,
-          language: { code: env.FAST2SMS_TEMPLATE_LANGUAGE },
+          language: { code: templateLanguage },
           components,
         },
       }),

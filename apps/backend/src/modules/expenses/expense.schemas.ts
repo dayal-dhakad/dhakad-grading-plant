@@ -1,10 +1,11 @@
-import { ExpenseCategory } from '@prisma/client';
+import { ExpenseArea, ExpenseCategory } from '@prisma/client';
 import { z } from 'zod';
 export const ExpenseIdSchema = z.strictObject({ id: z.uuid() });
 export const ExpenseListQuerySchema = z
   .strictObject({
     from: z.iso.date().optional(),
     to: z.iso.date().optional(),
+    area: z.nativeEnum(ExpenseArea).optional(),
     category: z.nativeEnum(ExpenseCategory).optional(),
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().min(10).max(50).default(20),

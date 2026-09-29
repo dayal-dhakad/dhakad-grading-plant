@@ -19,11 +19,13 @@ const schema = z.object({
     .string()
     .regex(/^v\d+\.\d+$/)
     .default('v26.0'),
-  FAST2SMS_GRADING_TEMPLATE_NAME: z.string().default('crop_grading_completed'),
-  FAST2SMS_SEED_TEMPLATE_NAME: z.string().default('seed_bill_confirmation'),
-  FAST2SMS_DUE_REMINDER_TEMPLATE_NAME: z.string().default('payment_due_reminder'),
+  FAST2SMS_GRADING_TEMPLATE_NAME: z.string().default('crop_grading_completed_hindi_new'),
+  FAST2SMS_SEED_TEMPLATE_NAME: z.string().default('seed_bill_confirmation_new'),
+  FAST2SMS_DUE_REMINDER_TEMPLATE_NAME: z.string().default('payment_due_reminder_new'),
   FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL: z.union([z.literal(''), z.string().url()]).optional(),
-  FAST2SMS_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
+  FAST2SMS_GRADING_TEMPLATE_LANGUAGE: z.string().min(2).default('hi'),
+  FAST2SMS_SEED_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
+  FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE: z.string().min(2).default('hi'),
   SEED_GST_RATE_PERCENT: z.coerce.number().min(0).max(100).default(5),
 });
 const result = schema.safeParse(process.env);

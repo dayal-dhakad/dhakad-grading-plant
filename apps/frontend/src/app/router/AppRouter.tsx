@@ -21,6 +21,7 @@ import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
 import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
+import { PublicGradingReceiptPage } from '@/components/receipts/PublicGradingReceiptPage';
 import { ExpensesPage } from '@/components/admin/ExpensesPage';
 
 const SessionGate = () => {
@@ -66,6 +67,7 @@ const RoleLanding = () => {
 
 export const AppRouter = () => (
   <Routes>
+    <Route path="/receipts/grading/:token" element={<PublicGradingReceiptPage />} />
     <Route path="/receipts/seed/:token" element={<PublicSeedReceiptPage />} />
     <Route path="/login" element={<LoginRoute />} />
     <Route path="/" element={<SessionGate />}>

@@ -20,7 +20,11 @@ export const ReportResponseSchema = z
     expenses: z.strictObject({
       count: z.number().int().nonnegative(),
       total: money,
+      grading: countMoney,
+      seeds: countMoney,
+      adminPersonal: countMoney,
       gradingMargin: money,
+      seedMargin: money,
       categories: z.array(
         z.strictObject({
           category: z.string(),
@@ -35,6 +39,7 @@ export const ReportResponseSchema = z
       quantityQuintals: z.string(),
       amount: money,
       paid: money,
+      due: money,
       waived: money,
       cancelledCount: z.number().int(),
     }),
@@ -44,6 +49,7 @@ export const ReportResponseSchema = z
       discount: money,
       net: money,
       paid: money,
+      due: money,
       waived: money,
       quantityKg: z.string(),
       cancelledCount: z.number().int(),
@@ -139,14 +145,33 @@ export const ReportResponseSchema = z
         path: ['expenses', 'total'],
         message: 'Expense category breakdown does not match total',
       });
+    const areaExpenses =
+      cents(report.expenses.grading.amount) +
+      cents(report.expenses.seeds.amount) +
+      cents(report.expenses.adminPersonal.amount);
+    if (cents(report.expenses.total) !== areaExpenses)
+      context.addIssue({
+        code: 'custom',
+        path: ['expenses', 'total'],
+        message: 'Expense area breakdown does not match total',
+      });
     if (
       cents(report.expenses.gradingMargin) !==
-      cents(report.grading.amount) - cents(report.expenses.total)
+      cents(report.grading.amount) - cents(report.expenses.grading.amount)
     )
       context.addIssue({
         code: 'custom',
         path: ['expenses', 'gradingMargin'],
-        message: 'Grading margin does not match grading charges minus expenses',
+        message: 'Grading margin does not match grading charges minus grading expenses',
+      });
+    if (
+      cents(report.expenses.seedMargin) !==
+      cents(report.seeds.net) - cents(report.expenses.seeds.amount)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['expenses', 'seedMargin'],
+        message: 'Seed margin does not match seed sales minus seed expenses',
       });
   });
 export type ReportQuery = z.infer<typeof ReportQuerySchema>;

@@ -251,11 +251,14 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
         gradingEntryId: created.id,
         variables: {
           name: customer.name,
-          crop: crop.name,
-          quantity: quantity.toFixed(2),
+          number: `GR-${String(created.entryNumber).padStart(6, '0')}`,
           amount: calculatedAmount.toFixed(2),
           paid: paidAmount.toFixed(2),
-          due: Prisma.Decimal.max(0, calculatedAmount.minus(paidAmount).minus(waivedAmount)).toFixed(2),
+          due: Prisma.Decimal.max(
+            0,
+            calculatedAmount.minus(paidAmount).minus(waivedAmount),
+          ).toFixed(2),
+          receiptUrl: `${process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'}/receipts/grading/${created.publicReceiptToken}`,
         },
         preview: `Grading GR-${String(created.entryNumber).padStart(6, '0')} recorded. Amount ₹${calculatedAmount.toFixed(2)}, paid ₹${paidAmount.toFixed(2)}.`,
       });
@@ -263,6 +266,15 @@ export const createGradingEntry = async (input: CreateGradingEntryInput, userId:
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
+  return present(entry);
+};
+
+export const getPublicGradingReceipt = async (token: string) => {
+  const entry = await prisma.gradingEntry.findUnique({
+    where: { publicReceiptToken: token },
+    include,
+  });
+  if (!entry) throw new AppError(404, 'RECEIPT_NOT_FOUND', 'Receipt was not found');
   return present(entry);
 };
 
