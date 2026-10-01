@@ -14,7 +14,7 @@ const schema = z.object({
   MSG91_WHATSAPP_TEMPLATE_NAME: z.string().optional(),
   MSG91_WHATSAPP_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
   FAST2SMS_API_KEY: z.string().optional(),
-  FAST2SMS_PHONE_NUMBER_ID: z.string().optional(),
+  FAST2SMS_PHONE_NUMBER_ID: z.string().default('1122050301001410'),
   FAST2SMS_API_VERSION: z
     .string()
     .regex(/^v\d+\.\d+$/)
@@ -22,7 +22,10 @@ const schema = z.object({
   FAST2SMS_GRADING_TEMPLATE_NAME: z.string().default('crop_grading_completed_hindi_new'),
   FAST2SMS_SEED_TEMPLATE_NAME: z.string().default('seed_bill_confirmation_new'),
   FAST2SMS_DUE_REMINDER_TEMPLATE_NAME: z.string().default('payment_due_reminder_final'),
-  FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL: z.union([z.literal(''), z.string().url()]).optional(),
+  FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL: z
+    .string()
+    .url()
+    .default('https://app.rcpexim.com/icons/reminder.jpeg'),
   FAST2SMS_GRADING_TEMPLATE_LANGUAGE: z.string().min(2).default('hi'),
   FAST2SMS_SEED_TEMPLATE_LANGUAGE: z.string().min(2).default('en'),
   FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE: z.string().min(2).default('hi'),

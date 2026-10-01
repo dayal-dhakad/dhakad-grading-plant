@@ -10,7 +10,7 @@ const ResponseSchema = z
 const variableOrder: Partial<Record<string, string[]>> = {
   GRADING_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],
   SEED_BILL_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],
-  DUE_REMINDER: ['name'],
+  DUE_REMINDER: ['name', 'amount'],
 };
 
 export const sendFast2SmsWhatsApp = async (input: {

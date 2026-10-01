@@ -446,6 +446,7 @@ FAST2SMS_SEED_TEMPLATE_NAME=seed_bill_confirmation_new
 FAST2SMS_SEED_TEMPLATE_LANGUAGE=en
 FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_final
 FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE=hi
+FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL=https://app.rcpexim.com/icons/reminder.jpeg
 ```
 
 The connected sender for that Phone Number ID is `+91 99819 80308`. Fast2SMS Cloud API requests

@@ -16,8 +16,9 @@ live provider delivery verification remains pending.
 - The connected WhatsApp sender is `+91 99819 80308` with Phone Number ID
   `1122050301001410`. The seed message configuration is unchanged.
 - The final image-header due-reminder template is the Hindi Utility template
-  `payment_due_reminder_final` (template ID `1617083063201110`). Its body accepts only the customer
-  name as `{{1}}` and additionally requires a public HTTPS header-image URL.
+  `payment_due_reminder_final` (template ID `1617083063201110`). Its body accepts the customer name
+  as `{{1}}` and outstanding amount as `{{2}}`, and uses the public HTTPS header image
+  `https://app.rcpexim.com/icons/reminder.jpeg`.
 
 ## Implemented scope
 
@@ -63,7 +64,7 @@ channels, missing channel consent, and customers without an outstanding balance.
 - `FAST2SMS_SEED_TEMPLATE_LANGUAGE=en`
 - `FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_final`
 - `FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE=hi`
-- `FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL`
+- `FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL=https://app.rcpexim.com/icons/reminder.jpeg`
 
 Secrets belong only in `apps/backend/.env`. The example environment files contain blank
 placeholders.
