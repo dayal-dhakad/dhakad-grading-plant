@@ -15,9 +15,9 @@ live provider delivery verification remains pending.
   separate template-name and language variables for grading, seed, and due-reminder messages.
 - The connected WhatsApp sender is `+91 99819 80308` with Phone Number ID
   `1122050301001410`. The seed message configuration is unchanged.
-- The approved image-header due-reminder template is the Hindi Utility template
-  `payment_due_reminder_new` (template ID `1095864712809625`). Its body accepts the customer name
-  as `{{1}}` and outstanding amount as `{{2}}`, and requires a public HTTPS header-image URL.
+- The final image-header due-reminder template is the Hindi Utility template
+  `payment_due_reminder_final` (template ID `1617083063201110`). Its body accepts only the customer
+  name as `{{1}}` and additionally requires a public HTTPS header-image URL.
 
 ## Implemented scope
 
@@ -61,7 +61,7 @@ channels, missing channel consent, and customers without an outstanding balance.
 - `FAST2SMS_GRADING_TEMPLATE_LANGUAGE=hi`
 - `FAST2SMS_SEED_TEMPLATE_NAME=seed_bill_confirmation_new`
 - `FAST2SMS_SEED_TEMPLATE_LANGUAGE=en`
-- `FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_new`
+- `FAST2SMS_DUE_REMINDER_TEMPLATE_NAME=payment_due_reminder_final`
 - `FAST2SMS_DUE_REMINDER_TEMPLATE_LANGUAGE=hi`
 - `FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL`
 
