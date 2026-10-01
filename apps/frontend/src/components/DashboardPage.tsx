@@ -22,8 +22,10 @@ export const DashboardPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const today = localDate();
-  const [datePreset, setDatePreset] = useState<DatePreset>('today');
-  const [reportFrom, setReportFrom] = useState(today);
+  const [datePreset, setDatePreset] = useState<DatePreset>('month');
+  const [reportFrom, setReportFrom] = useState(
+    localDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  );
   const [reportTo, setReportTo] = useState(today);
   const { data: user } = useGetCurrentUserQuery();
   const { data: staff } = useGetStaffListQuery({ status: 'active', page: 1 });
@@ -171,16 +173,17 @@ export const DashboardPage = () => {
         </Link> */}
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
-          to="/admin/entries?tab=grading"
+          to="/admin/customers"
         >
-          <p className="card-label">Grading dues</p>
+          <p className="card-label">Current customer dues</p>
           <p className="mt-3 text-2xl font-bold tabular-nums text-red-700 sm:text-3xl">
             {isReportLoading
               ? '—'
               : isReportError
                 ? 'Unavailable'
-                : `₹${report?.grading.due ?? '0.00'}`}
+                : `₹${report?.dues.total ?? '0.00'}`}
           </p>
+          <p className="mt-2 text-xs font-semibold text-stone-500">Live all-time balance</p>
         </Link>
         {/* <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"

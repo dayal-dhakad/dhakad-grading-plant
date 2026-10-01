@@ -25,8 +25,10 @@ export const AdminEntriesPage = () => {
   const [tab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
   const today = localDate();
-  const [datePreset, setDatePreset] = useState<DatePreset>('today');
-  const [from, setFrom] = useState(today);
+  const [datePreset, setDatePreset] = useState<DatePreset>('month');
+  const [from, setFrom] = useState(
+    localDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  );
   const [to, setTo] = useState(today);
   const deferred = useDeferredValue(search.trim());
   const [page, setPage] = useState(1);
