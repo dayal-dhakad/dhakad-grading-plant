@@ -18,68 +18,73 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
     gte: new Date(`${query.from}T00:00:00.000Z`),
     lt: new Date(new Date(`${query.to}T00:00:00.000Z`).getTime() + 86_400_000),
   };
-  const [grading, seedBills, payments, dues, stock, users, expenses] = await prisma.$transaction([
-    prisma.gradingEntry.findMany({
-      where: { serviceDate: serviceRange },
-      select: {
-        id: true,
-        entryNumber: true,
-        status: true,
-        quantity: true,
-        calculatedAmount: true,
-        paidAmount: true,
-        waivedAmount: true,
-        paymentMethod: true,
-        paymentAccountId: true,
-        createdById: true,
-      },
-    }),
-    prisma.seedBill.findMany({
-      where: { serviceDate: serviceRange },
-      select: {
-        id: true,
-        billNumber: true,
-        status: true,
-        grossAmount: true,
-        discountAmount: true,
-        netAmount: true,
-        paidAmount: true,
-        waivedAmount: true,
-        paymentMethod: true,
-        paymentAccountId: true,
-        createdById: true,
-        items: { where: { isCurrent: true }, select: { quantityGrams: true } },
-      },
-    }),
-    prisma.customerPayment.findMany({
-      where: { createdAt: createdRange },
-      select: {
-        id: true,
-        receiptNumber: true,
-        status: true,
-        amount: true,
-        waivedAmount: true,
-        paymentMethod: true,
-        paymentAccountId: true,
-        recordedById: true,
-      },
-    }),
-    prisma.customerLedgerEntry.groupBy({
-      by: ['customerId'],
-      orderBy: { customerId: 'asc' },
-      _sum: { amount: true },
-    }),
-    prisma.seedStockMovement.groupBy({
-      by: ['productId'],
-      orderBy: { productId: 'asc' },
-      _sum: { quantityGrams: true },
-    }),
-    prisma.user.findMany({ select: { id: true, name: true } }),
-    prisma.expense.findMany({
-      where: { expenseDate: serviceRange },
-      select: { area: true, category: true, otherCategory: true, amount: true },
-    }),
-  ]);
+  const [grading, seedBills, payments, dues, stock, users, expenses, workerPayments] =
+    await prisma.$transaction([
+      prisma.gradingEntry.findMany({
+        where: { serviceDate: serviceRange },
+        select: {
+          id: true,
+          entryNumber: true,
+          status: true,
+          quantity: true,
+          calculatedAmount: true,
+          paidAmount: true,
+          waivedAmount: true,
+          paymentMethod: true,
+          paymentAccountId: true,
+          createdById: true,
+        },
+      }),
+      prisma.seedBill.findMany({
+        where: { serviceDate: serviceRange },
+        select: {
+          id: true,
+          billNumber: true,
+          status: true,
+          grossAmount: true,
+          discountAmount: true,
+          netAmount: true,
+          paidAmount: true,
+          waivedAmount: true,
+          paymentMethod: true,
+          paymentAccountId: true,
+          createdById: true,
+          items: { where: { isCurrent: true }, select: { quantityGrams: true } },
+        },
+      }),
+      prisma.customerPayment.findMany({
+        where: { createdAt: createdRange },
+        select: {
+          id: true,
+          receiptNumber: true,
+          status: true,
+          amount: true,
+          waivedAmount: true,
+          paymentMethod: true,
+          paymentAccountId: true,
+          recordedById: true,
+        },
+      }),
+      prisma.customerLedgerEntry.groupBy({
+        by: ['customerId'],
+        orderBy: { customerId: 'asc' },
+        _sum: { amount: true },
+      }),
+      prisma.seedStockMovement.groupBy({
+        by: ['productId'],
+        orderBy: { productId: 'asc' },
+        _sum: { quantityGrams: true },
+      }),
+      prisma.user.findMany({ select: { id: true, name: true } }),
+      prisma.expense.findMany({
+        where: { expenseDate: serviceRange },
+        select: { area: true, category: true, otherCategory: true, amount: true },
+      }),
+      prisma.workerPayment.findMany({
+        where: { paymentDate: serviceRange },
+        select: { amount: true },
+      }),
+    ]);
   const activeGrading = grading.filter((row) => row.status === 'ACTIVE');
   const activeSeeds = seedBills.filter((row) => row.status === 'ACTIVE');
   const activePayments = payments.filter((row) => row.status === 'ACTIVE');
@@ -189,6 +194,10 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       ]),
     ),
     totalWaived: money(totalWaived),
+    workerPayments: {
+      count: workerPayments.length,
+      amount: money(sum(workerPayments.map((row) => row.amount))),
+    },
     expenses: {
       count: expenses.length,
       total: money(expenseTotal),

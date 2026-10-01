@@ -8,12 +8,14 @@ const adminItems = [
   { label: 'Entries', path: '/admin/entries', icon: 'entries', enabled: true },
   { label: 'Payments', path: '/admin/payments', icon: 'payments', enabled: true },
   { label: 'Expenses', path: '/admin/expenses', icon: 'expenses', enabled: true },
+  { label: 'Workers', path: '/admin/workers', icon: 'staff', enabled: true },
   { label: 'Customers', path: '/admin/customers', icon: 'customers', enabled: true },
   { label: 'Staff', path: '/admin/staff', icon: 'staff', enabled: true },
   { label: 'Reports', path: '/admin/reports', icon: 'dashboard', enabled: true },
   { label: 'Grading Settings', path: '/admin/grading-settings', icon: 'settings', enabled: true },
   // { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
   { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
+  { label: 'Exports', path: '/admin/exports', icon: 'entries', enabled: true },
 ];
 const staffItems = [
   { label: 'New Entry', path: '/staff/new-entry', icon: 'new-entry', enabled: true },
@@ -112,7 +114,7 @@ export const AppShell = ({ children }: PropsWithChildren) => {
       >
         <BrandMark compact={isCollapsed} />
       </div>
-      <nav className="flex-1 space-y-1 p-2.5" aria-label="Main navigation">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2.5" aria-label="Main navigation">
         {items.map((item) =>
           item.enabled && item.path ? (
             <NavLink
@@ -141,11 +143,11 @@ export const AppShell = ({ children }: PropsWithChildren) => {
       </nav>
       <div className="border-t border-stone-200 p-3">
         <button
-          className={`secondary-button flex w-full items-center justify-center gap-2 ${isCollapsed ? 'px-2' : ''}`}
+          className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-bold text-red-700 transition hover:border-red-300 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-60 ${isCollapsed ? 'px-2' : ''}`}
           disabled={isLoading}
           onClick={() => void logout()}
-          title={isCollapsed ? 'Sign out' : undefined}
-          aria-label="Sign out"
+          title={isCollapsed ? 'Logout' : undefined}
+          aria-label="Logout"
         >
           <svg
             aria-hidden="true"
@@ -157,7 +159,7 @@ export const AppShell = ({ children }: PropsWithChildren) => {
           >
             <path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9" />
           </svg>
-          {!isCollapsed && (isLoading ? 'Signing out…' : 'Sign out')}
+          {!isCollapsed && (isLoading ? 'Logging out…' : 'Logout')}
         </button>
       </div>
     </>

@@ -44,7 +44,7 @@ export const sendFast2SmsWhatsApp = async (input: {
             parameters: [
               {
                 type: 'image',
-                image: { link: env.FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL! },
+                image: { link: env.FAST2SMS_DUE_REMINDER_HEADER_IMAGE_URL },
               },
             ],
           },

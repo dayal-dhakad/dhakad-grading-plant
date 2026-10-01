@@ -6,6 +6,7 @@ import { requireAuth, requireRole } from '../auth/auth.middleware.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import {
   createCustomer,
+  exportCustomers,
   getCustomer,
   getCustomerDues,
   getCustomerGradingDue,
@@ -15,6 +16,7 @@ import {
 } from './customer.service.js';
 import {
   CustomerIdParamsSchema,
+  CustomerExportQuerySchema,
   CustomerListQuerySchema,
   CustomerStatusSchema,
 } from './customer.schemas.js';
@@ -37,6 +39,13 @@ customerRouter.use(requireAuth);
 customerRouter.get('/', async (request, response, next) => {
   try {
     response.json(await listCustomers(parse(CustomerListQuerySchema, request.query)));
+  } catch (error) {
+    next(error);
+  }
+});
+customerRouter.get('/export', requireRole(Role.ADMIN), async (request, response, next) => {
+  try {
+    response.json(await exportCustomers(parse(CustomerExportQuerySchema, request.query)));
   } catch (error) {
     next(error);
   }

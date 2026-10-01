@@ -171,6 +171,33 @@
   .draft-receipt [class*='min-w-'] {
     min-width: 0 !important;
   }
+  .report-print {
+    width: 190mm !important;
+    max-width: 190mm !important;
+    color: #1c1917 !important;
+    font-size: 10px !important;
+  }
+  .report-print [class*='min-w-'] {
+    min-width: 0 !important;
+  }
+  .report-print section,
+  .report-print article,
+  .report-print table {
+    break-inside: avoid;
+  }
+  .report-print .card,
+  .report-print .table-panel {
+    box-shadow: none !important;
+  }
+  .customer-pdf table {
+    break-inside: auto;
+  }
+  .customer-pdf thead {
+    display: table-header-group;
+  }
+  .customer-pdf tr {
+    break-inside: avoid;
+  }
   .draft-receipt .overflow-x-auto {
     overflow: visible !important;
   }

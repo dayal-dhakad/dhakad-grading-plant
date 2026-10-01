@@ -16,6 +16,8 @@ import { paymentAccountRouter } from './modules/payment-accounts/payment-account
 import { notificationRouter } from './modules/notifications/notification.routes.js';
 import { reportRouter } from './modules/reports/report.routes.js';
 import { expenseRouter } from './modules/expenses/expense.routes.js';
+import { workerRouter } from './modules/workers/worker.routes.js';
+import { exportRouter } from './modules/exports/export.routes.js';
 import { env } from './config/env.js';
 import { prisma } from './shared/database/prisma.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
@@ -79,6 +81,8 @@ export const createApp = (databaseCheck: () => Promise<unknown> = checkDatabase)
   app.use('/api/v1/notifications', notificationRouter);
   app.use('/api/v1/reports', reportRouter);
   app.use('/api/v1/expenses', expenseRouter);
+  app.use('/api/v1/workers', workerRouter);
+  app.use('/api/v1/exports', exportRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

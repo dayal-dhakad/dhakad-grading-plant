@@ -8,7 +8,12 @@ export const CustomerListQuerySchema = z.strictObject({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
+export const CustomerExportQuerySchema = z.strictObject({
+  search: z.string().trim().max(120, 'Search must not exceed 120 characters').optional(),
+  status: z.enum(['active', 'inactive', 'all']).default('active'),
+});
 
 export const CustomerStatusSchema = z.strictObject({ isActive: z.boolean() });
 
 export type CustomerListQuery = z.infer<typeof CustomerListQuerySchema>;
+export type CustomerExportQuery = z.infer<typeof CustomerExportQuerySchema>;

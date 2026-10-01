@@ -1,11 +1,12 @@
 import { useDeferredValue, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   useCancelGradingEntryMutation,
   useGetGradingEntriesQuery,
 } from '@/services/api/grading-api';
 import { EntryCancellationDialog } from '../entries/EntryCancellationDialog';
-import { DeleteIcon, HistoryIcon } from '../table/TableActions';
+import { DeleteIcon, HistoryIcon, PrintIcon } from '../table/TableActions';
+import { useCreateGradingExportMutation } from '@/services/api/export-api';
 import { tableIconActionClass } from '../table/table-action-styles';
 import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
@@ -20,6 +21,7 @@ const localDate = (date = new Date()) => {
 };
 
 export const AdminEntriesPage = () => {
+  const navigate = useNavigate();
   const [tab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
   const today = localDate();
@@ -31,6 +33,7 @@ export const AdminEntriesPage = () => {
   const [pageSize, setPageSize] = useState(20);
   const [entryToDelete, setEntryToDelete] = useState<{ id: string; label: string }>();
   const [cancelEntry, cancelState] = useCancelGradingEntryMutation();
+  const [createExport, exportState] = useCreateGradingExportMutation();
   const { data, isLoading, isError } = useGetGradingEntriesQuery(
     {
       ...(deferred ? { search: deferred } : {}),
@@ -56,10 +59,36 @@ export const AdminEntriesPage = () => {
     setTo(end);
     setPage(1);
   };
+  const exportEntries = async () => {
+    await createExport({
+      ...(deferred ? { search: deferred } : {}),
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      status: 'all',
+    }).unwrap();
+    void navigate('/admin/exports');
+  };
   return (
     <div className="mx-auto max-w-7xl">
-      <p className="text-sm font-semibold text-brand-700">Business activity</p>
-      <h1 className="mt-1 text-3xl font-bold">Entries</h1>
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">Business activity</p>
+          <h1 className="mt-1 text-3xl font-bold">Entries</h1>
+        </div>
+        <button
+          className="secondary-button grid size-11 min-h-0 place-items-center px-0"
+          disabled={exportState.isLoading || Boolean(from && to && from > to)}
+          onClick={() => void exportEntries()}
+          aria-label="Export all matching entries as PDF"
+          title="Export all matching entries as PDF"
+        >
+          {exportState.isLoading ? (
+            <span className="block size-4 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700" />
+          ) : (
+            <PrintIcon />
+          )}
+        </button>
+      </header>
       {/* <div
         className="mt-5 inline-flex gap-1 rounded-xl border border-stone-200 bg-stone-100 p-1"
         role="group"

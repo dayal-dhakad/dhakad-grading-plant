@@ -23,6 +23,9 @@ import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 // import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
 import { PublicGradingReceiptPage } from '@/components/receipts/PublicGradingReceiptPage';
 import { ExpensesPage } from '@/components/admin/ExpensesPage';
+import { WorkersPage } from '@/components/workers/WorkersPage';
+import { ExportsPage } from '@/components/admin/ExportsPage';
+import { WorkerDetailPage } from '@/components/workers/WorkerDetailPage';
 
 const SessionGate = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
@@ -86,6 +89,9 @@ export const AppRouter = () => (
         <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
         <Route path="admin/reports" element={<ReportsPage />} />
         <Route path="admin/expenses" element={<ExpensesPage />} />
+        <Route path="admin/workers" element={<WorkersPage />} />
+        <Route path="admin/exports" element={<ExportsPage />} />
+        <Route path="admin/workers/:id" element={<WorkerDetailPage />} />
         <Route path="admin/entries/:id/history" element={<GradingRevisionHistoryPage admin />} />
         {/* <Route
           path="admin/seed-bills/:id/history"

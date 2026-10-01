@@ -2,6 +2,7 @@ import {
   CreateCustomerSchema,
   CustomerGradingDueResponseSchema,
   CustomerDuesResponseSchema,
+  CustomerExportResponseSchema,
   CustomerListResponseSchema,
   CustomerResponseSchema,
   UpdateCustomerSchema,
@@ -50,6 +51,13 @@ export const customerApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'Customer', id: 'LIST' }],
     }),
+    exportCustomers: builder.query<
+      ReturnType<typeof CustomerExportResponseSchema.parse>,
+      Pick<CustomerListParams, 'search' | 'status'>
+    >({
+      query: (params) => ({ url: '/customers/export', params }),
+      transformResponse: (response: unknown) => CustomerExportResponseSchema.parse(response),
+    }),
     createCustomer: builder.mutation<Customer, CreateCustomerInput>({
       query: (body) => ({
         url: '/customers',
@@ -90,6 +98,7 @@ export const {
   useGetCustomerGradingDueQuery,
   useGetCustomerDuesQuery,
   useGetCustomersQuery,
+  useLazyExportCustomersQuery,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useSetCustomerStatusMutation,

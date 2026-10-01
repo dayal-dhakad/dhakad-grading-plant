@@ -2,7 +2,7 @@
 
 ## Current status
 
-Phases 1 through 13 and Phases 15 through 19 are implemented and verified locally. Phase 18 live
+Phases 1 through 13 and Phases 15 through 21 are implemented and verified locally. Phase 18 live
 VPS/domain rollout remains environment-specific operational work. Phase 14 notification code is
 implemented locally and the Fast2SMS WhatsApp templates are verified; live delivery verification
 remains environment-specific operational work. Phase 15 added administrator reports and CSV export. Phase 16
@@ -169,6 +169,8 @@ Indian mobile numbers are stored as exactly 10 ASCII digits without `+91`, space
 17. Security and testing hardening
 18. Production deployment
 19. Expenses
+20. Workers and worker payments
+21. Background customer PDF exports
 
 Each phase requires explicit approval, repository inspection, scoped implementation, applicable verification, a change report, and a review stop. Architecture can prepare extension points, but future features must not be implemented early.
 

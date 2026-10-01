@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import type { CreateCustomerInput, UpdateCustomerInput } from '@dhakad/shared';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
-import type { CustomerListQuery } from './customer.schemas.js';
+import type { CustomerExportQuery, CustomerListQuery } from './customer.schemas.js';
 
 const customerConflict = () =>
   new AppError(409, 'CUSTOMER_MOBILE_EXISTS', 'A customer with this mobile number already exists', [
@@ -18,9 +18,9 @@ const translatePrismaError = (error: unknown): never => {
   throw error;
 };
 
-export const listCustomers = async (query: CustomerListQuery) => {
+const customerWhere = (query: CustomerExportQuery): Prisma.CustomerWhereInput => {
   const search = query.search?.trim();
-  const where: Prisma.CustomerWhereInput = {
+  return {
     ...(query.status === 'all' ? {} : { isActive: query.status === 'active' }),
     ...(search
       ? {
@@ -32,6 +32,10 @@ export const listCustomers = async (query: CustomerListQuery) => {
         }
       : {}),
   };
+};
+
+export const listCustomers = async (query: CustomerListQuery) => {
+  const where = customerWhere(query);
   const { customers, total } = await prisma.$transaction(async (transaction) => {
     const [pageCustomers, customerCount] = await Promise.all([
       transaction.customer.findMany({
@@ -72,6 +76,35 @@ export const listCustomers = async (query: CustomerListQuery) => {
       totalPages: Math.ceil(total / query.pageSize),
     },
   };
+};
+
+export const exportCustomers = async (query: CustomerExportQuery) => {
+  const where = customerWhere(query);
+  return prisma.$transaction(async (transaction) => {
+    const customers = await transaction.customer.findMany({
+      where,
+      orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+    });
+    const balances = customers.length
+      ? await transaction.customerLedgerEntry.groupBy({
+          by: ['customerId'],
+          where: { customerId: { in: customers.map(({ id }) => id) } },
+          _sum: { amount: true },
+        })
+      : [];
+    const balanceByCustomer = new Map(
+      balances.map(({ customerId, _sum }) => [
+        customerId,
+        (_sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+      ]),
+    );
+    return {
+      customers: customers.map((customer) => ({
+        ...customer,
+        totalDue: balanceByCustomer.get(customer.id) ?? '0.00',
+      })),
+    };
+  });
 };
 
 export const getCustomer = async (id: string) => {

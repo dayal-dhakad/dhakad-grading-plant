@@ -1,6 +1,6 @@
 import { useDeferredValue, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import { CreateCustomerSchema, type Customer } from '@dhakad/shared';
+import { Link, useNavigate } from 'react-router-dom';
+import { CreateCustomerSchema, type Customer, type CustomerListResponse } from '@dhakad/shared';
 import { ApiErrorResponseSchema } from '@/services/api/auth-api';
 import {
   useCreateCustomerMutation,
@@ -14,6 +14,8 @@ import {
 } from '@/services/api/notification-api';
 import { MobileNumberInput } from '../form/MobileNumberInput';
 import { TablePagination } from '../table/TablePagination';
+import { PrintIcon } from '../table/TableActions';
+import { useCreateCustomerExportMutation } from '@/services/api/export-api';
 
 type StatusFilter = 'active' | 'inactive' | 'all';
 type FormField = 'mobile' | 'name' | 'village' | 'address';
@@ -256,6 +258,7 @@ const TextField = ({
 );
 
 export const CustomersPage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search.trim());
   const [status, setStatus] = useState<StatusFilter>('active');
@@ -274,6 +277,18 @@ export const CustomersPage = () => {
   const [setStatusMutation, statusState] = useSetCustomerStatusMutation();
   const [sendReminder] = useSendReminderMutation();
   const [sendBulkReminders, bulkReminderState] = useSendBulkRemindersMutation();
+  const [createExport, exportState] = useCreateCustomerExportMutation();
+  const exportCustomersPdf = async () => {
+    try {
+      await createExport({
+        ...(deferredSearch ? { search: deferredSearch } : {}),
+        status,
+      }).unwrap();
+      void navigate('/admin/exports');
+    } catch {
+      setReminderMessage('Unable to export customers. Please try again.');
+    }
+  };
   const changeStatus = (customer: Customer) => {
     void setStatusMutation({ id: customer.id, isActive: !customer.isActive });
   };
@@ -315,6 +330,19 @@ export const CustomersPage = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            className="secondary-button grid size-11 min-h-0 place-items-center px-0"
+            disabled={exportState.isLoading}
+            onClick={() => void exportCustomersPdf()}
+            aria-label="Export all customers as PDF"
+            title="Export all customers as PDF"
+          >
+            {exportState.isLoading ? (
+              <span className="block size-4 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700" />
+            ) : (
+              <PrintIcon />
+            )}
+          </button>
           <button
             className="secondary-button"
             disabled={bulkReminderState.isLoading}
@@ -506,3 +534,49 @@ export const CustomersPage = () => {
     </div>
   );
 };
+
+export const CustomerPdf = ({
+  customers,
+  status,
+  search,
+}: {
+  customers: CustomerListResponse['customers'];
+  status: StatusFilter;
+  search: string;
+}) => (
+  <div className="print-receipt report-print customer-pdf pointer-events-none fixed inset-0 opacity-0 print:pointer-events-auto print:opacity-100">
+    <header className="mb-5 border-b-2 border-stone-800 pb-3">
+      <p className="text-sm font-bold uppercase tracking-wide">Dhakad Grading Plant</p>
+      <h1 className="mt-1 text-2xl font-bold">Customer directory</h1>
+      <p className="mt-2 text-sm">
+        {customers.length} customer{customers.length === 1 ? '' : 's'} · Status: {status}
+        {search ? ` · Search: ${search}` : ''}
+      </p>
+    </header>
+    <table className="w-full border-collapse text-left text-[10px]">
+      <thead>
+        <tr className="bg-stone-100">
+          {['Customer', 'Mobile', 'Village', 'Address', 'Total dues', 'Status'].map((heading) => (
+            <th key={heading} className="border border-stone-400 px-2 py-1.5 font-bold">
+              {heading}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {customers.map((customer) => (
+          <tr key={customer.id}>
+            <td className="border border-stone-300 px-2 py-1.5 font-semibold">{customer.name}</td>
+            <td className="border border-stone-300 px-2 py-1.5">{customer.mobile}</td>
+            <td className="border border-stone-300 px-2 py-1.5">{customer.village}</td>
+            <td className="border border-stone-300 px-2 py-1.5">{customer.address || '—'}</td>
+            <td className="border border-stone-300 px-2 py-1.5 text-right">₹{customer.totalDue}</td>
+            <td className="border border-stone-300 px-2 py-1.5">
+              {customer.isActive ? 'Active' : 'Inactive'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);

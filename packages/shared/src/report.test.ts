@@ -18,6 +18,7 @@ describe('report contracts', () => {
       period: { from: '2026-09-01', to: '2026-09-16' },
       totalBilled: '118.00',
       totalWaived: '5.50',
+      workerPayments: { count: 2, amount: '750.00' },
       expenses: {
         count: 1,
         total: '25.00',

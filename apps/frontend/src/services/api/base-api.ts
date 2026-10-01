@@ -15,6 +15,8 @@ export const baseApi = createApi({
     'PaymentAccount',
     'Notification',
     'Expense',
+    'Worker',
+    'Export',
     'Report',
   ],
   baseQuery: fetchBaseQuery({ baseUrl: frontendEnv.VITE_API_BASE_URL, credentials: 'include' }),

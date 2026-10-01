@@ -17,12 +17,13 @@ import {
 } from '@/services/api/expense-api';
 
 const categories: { value: ExpenseCategory; label: string }[] = [
-  { value: 'WORKER_PAYMENT', label: 'Worker payment' },
+  { value: 'WORKER_PAYMENT', label: 'Worker payment (legacy)' },
   { value: 'ELECTRICITY_BILL', label: 'Electricity bill' },
   { value: 'MACHINE_PARTS', label: 'Machine parts' },
   { value: 'TEA_REFRESHMENTS', label: 'Tea / refreshments' },
   { value: 'OTHER', label: 'Other' },
 ];
+const selectableCategories = categories.filter((x) => x.value !== 'WORKER_PAYMENT');
 const areas: { value: ExpenseArea; label: string }[] = [
   { value: 'GRADING', label: 'Grading' },
   { value: 'SEEDS', label: 'Seeds' },
@@ -141,10 +142,10 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
             }}
           >
             {visibleAreas(staff).map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         {datePreset === 'custom' && (
@@ -186,7 +187,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
             }}
           >
             <option value="">All categories</option>
-            {categories.map((x) => (
+            {selectableCategories.map((x) => (
               <option key={x.value} value={x.value}>
                 {x.label}
               </option>
@@ -292,7 +293,9 @@ const ExpenseModal = ({
 }) => {
   const [expenseDate, setDate] = useState(expense?.expenseDate ?? today());
   const [area, setArea] = useState<ExpenseArea>(expense?.area ?? 'GRADING');
-  const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? 'WORKER_PAYMENT');
+  const [category, setCategory] = useState<ExpenseCategory>(
+    expense?.category ?? 'ELECTRICITY_BILL',
+  );
   const [otherCategory, setOther] = useState(expense?.otherCategory ?? '');
   const [amount, setAmount] = useState(expense?.amount ?? '');
   const [paidTo, setPaidTo] = useState(expense?.paidTo ?? '');
@@ -398,10 +401,10 @@ const ExpenseModal = ({
               }}
             >
               {visibleAreas(staff).map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
             <FieldError message={fieldErrors.area} />
           </label>
@@ -416,7 +419,7 @@ const ExpenseModal = ({
                 clearError('category');
               }}
             >
-              {categories.map((x) => (
+              {selectableCategories.map((x) => (
                 <option key={x.value} value={x.value}>
                   {x.label}
                 </option>

@@ -1,7 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ReportResponse } from '@dhakad/shared';
 import { useGetOverviewReportQuery } from '@/services/api/report-api';
+import { useCreateReportExportMutation } from '@/services/api/export-api';
+import { PrintIcon } from '@/components/table/TableActions';
 
 type DatePreset = 'today' | 'month' | 'year' | 'custom';
 const localDate = (date = new Date()) => {
@@ -16,7 +19,7 @@ const quantity = (value: string) =>
   new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 }).format(Number(value));
 const sumMoney = (...values: string[]) =>
   values.reduce((total, value) => total + Number(value), 0).toFixed(2);
-const downloadCsv = (report: ReportResponse) => {
+export const downloadCsv = (report: ReportResponse) => {
   const rows: (string | number)[][] = [
     ['Dhakad Grading Plant report', `${report.period.from} to ${report.period.to}`],
     ['Metric', 'Value'],
@@ -24,6 +27,8 @@ const downloadCsv = (report: ReportResponse) => {
     ['Grading quantity (quintals)', report.grading.quantityQuintals],
     ['Grading charges', report.grading.amount],
     ['Grading expenses', report.expenses.grading.amount],
+    ['Worker payments', report.workerPayments.amount],
+    ['Worker payment entries', report.workerPayments.count],
     ['Admin personal expenses', report.expenses.adminPersonal.amount],
     ['Estimated grading margin', report.expenses.gradingMargin],
     ['Grading paid', report.grading.paid],
@@ -38,10 +43,12 @@ const downloadCsv = (report: ReportResponse) => {
     [],
     ['Payments needing mode review'],
     ['Record', 'Amount'],
-    ...report.payments.unclassifiedRecords.filter((row) => row.kind !== 'seed').map((row) => [
-      `${row.kind === 'grading' ? 'GR' : 'RCPT'}-${String(row.number).padStart(6, '0')}`,
-      row.amount,
-    ]),
+    ...report.payments.unclassifiedRecords
+      .filter((row) => row.kind !== 'seed')
+      .map((row) => [
+        `${row.kind === 'grading' ? 'GR' : 'RCPT'}-${String(row.number).padStart(6, '0')}`,
+        row.amount,
+      ]),
     [],
     ['Customer dues'],
     ['Name', 'Mobile', 'Village', 'Amount'],
@@ -53,11 +60,7 @@ const downloadCsv = (report: ReportResponse) => {
     [],
     ['Staff activity'],
     ['Staff', 'Grading', 'Payments'],
-    ...report.staffActivity.map((row) => [
-      row.name,
-      row.gradingCount,
-      row.paymentCount,
-    ]),
+    ...report.staffActivity.map((row) => [row.name, row.gradingCount, row.paymentCount]),
   ];
   const csv = rows
     .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
@@ -70,6 +73,7 @@ const downloadCsv = (report: ReportResponse) => {
   URL.revokeObjectURL(url);
 };
 export const ReportsPage = () => {
+  const navigate = useNavigate();
   const current = new Date();
   const [datePreset, setDatePreset] = useState<DatePreset>('month');
   const [from, setFrom] = useState(
@@ -80,6 +84,7 @@ export const ReportsPage = () => {
     { from, to },
     { skip: !from || !to || from > to },
   );
+  const [createExport, exportState] = useCreateReportExportMutation();
   const selectDatePreset = (preset: Exclude<DatePreset, 'custom'>) => {
     const date = new Date();
     const end = localDate(date);
@@ -101,8 +106,22 @@ export const ReportsPage = () => {
           <h1 className="mt-1 text-3xl font-bold">Reports</h1>
         </div>
         {data && (
-          <button className="secondary-button" onClick={() => downloadCsv(data)}>
-            Export CSV
+          <button
+            className="secondary-button grid size-11 min-h-0 place-items-center px-0"
+            disabled={exportState.isLoading}
+            onClick={() =>
+              void createExport({ from, to })
+                .unwrap()
+                .then(() => navigate('/admin/exports'))
+            }
+            aria-label="Export report as PDF"
+            title="Export report as PDF"
+          >
+            {exportState.isLoading ? (
+              <span className="block size-4 animate-spin rounded-full border-2 border-stone-300 border-t-brand-700" />
+            ) : (
+              <PrintIcon />
+            )}
           </button>
         )}
       </header>
@@ -173,16 +192,22 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         value={rupees(r.grading.amount)}
         note={`${r.grading.count} entries · ${quantity(r.grading.quantityQuintals)} q`}
       />
-      {false && <Metric
-        label="Seed sales, after discount"
-        value={rupees(r.seeds.net)}
-        note={`${r.seeds.count} bills · ${quantity(r.seeds.quantityKg)} kg`}
-      />}
-      {false && <Metric
-        label="Total billed"
-        value={rupees(r.totalBilled)}
-        note="Grading charges + seed sales after discount"
-      />}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <Metric
+          label="Seed sales, after discount"
+          value={rupees(r.seeds.net)}
+          note={`${r.seeds.count} bills · ${quantity(r.seeds.quantityKg)} kg`}
+        />
+      )}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <Metric
+          label="Total billed"
+          value={rupees(r.totalBilled)}
+          note="Grading charges + seed sales after discount"
+        />
+      )}
       <Metric
         label="Total waived"
         value={rupees(sumMoney(r.grading.waived, r.payments.standaloneWaived))}
@@ -193,21 +218,32 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         value={rupees(sumMoney(r.grading.paid, r.payments.standalone.amount))}
         note="Grading and standalone customer payments"
       />
-      {false && <Metric
-        label="Total expenses"
-        value={rupees(r.expenses.total)}
-        note={`${r.expenses.count} expense entries`}
-      />}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <Metric
+          label="Total expenses"
+          value={rupees(r.expenses.total)}
+          note={`${r.expenses.count} expense entries`}
+        />
+      )}
       <Metric
         label="Grading expenses"
         value={rupees(r.expenses.grading.amount)}
         note={`${r.expenses.grading.count} expense entries`}
       />
-      {false && <Metric
-        label="Seed expenses"
-        value={rupees(r.expenses.seeds.amount)}
-        note={`${r.expenses.seeds.count} expense entries`}
-      />}
+      <Metric
+        label="Worker payments"
+        value={rupees(r.workerPayments.amount)}
+        note={`${r.workerPayments.count} payments`}
+      />
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <Metric
+          label="Seed expenses"
+          value={rupees(r.expenses.seeds.amount)}
+          note={`${r.expenses.seeds.count} expense entries`}
+        />
+      )}
       <Metric
         label="Admin personal expenses"
         value={rupees(r.expenses.adminPersonal.amount)}
@@ -218,11 +254,14 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         value={rupees(r.expenses.gradingMargin)}
         note="Grading charges minus grading expenses for the selected dates"
       />
-      {false && <Metric
-        label="Estimated seed margin"
-        value={rupees(r.expenses.seedMargin)}
-        note="Seed sales minus seed expenses for the selected dates"
-      />}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <Metric
+          label="Estimated seed margin"
+          value={rupees(r.expenses.seedMargin)}
+          note="Seed sales minus seed expenses for the selected dates"
+        />
+      )}
       <Metric
         label="Current dues · all time"
         value={rupees(r.dues.total)}
@@ -242,15 +281,18 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         ]}
         total={sumMoney(r.grading.paid, r.payments.standalone.amount)}
       />
-      {false && <SummaryCard
-        title="Collections by payment mode"
-        rows={[
-          ['Cash', r.payments.cash],
-          ['Online', r.payments.online],
-          ['Mode needs review', r.payments.unclassified],
-        ]}
-        total={r.payments.totalCollected}
-      />}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <SummaryCard
+          title="Collections by payment mode"
+          rows={[
+            ['Cash', r.payments.cash],
+            ['Online', r.payments.online],
+            ['Mode needs review', r.payments.unclassified],
+          ]}
+          total={r.payments.totalCollected}
+        />
+      )}
       <SummaryCard
         title="Waivers and discounts"
         rows={[
@@ -287,16 +329,18 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
           been changed.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {r.payments.unclassifiedRecords.filter((row) => row.kind !== 'seed').map((row) => (
-            <Link
-              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-brand-800 hover:underline"
-              key={row.id}
-              to={row.kind === 'grading' ? `/admin/entries/${row.id}/history` : '/admin/payments'}
-            >
-              {row.kind === 'grading' ? 'GR' : 'RCPT'}-
-              {String(row.number).padStart(6, '0')} · {rupees(row.amount)}
-            </Link>
-          ))}
+          {r.payments.unclassifiedRecords
+            .filter((row) => row.kind !== 'seed')
+            .map((row) => (
+              <Link
+                className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-brand-800 hover:underline"
+                key={row.id}
+                to={row.kind === 'grading' ? `/admin/entries/${row.id}/history` : '/admin/payments'}
+              >
+                {row.kind === 'grading' ? 'GR' : 'RCPT'}-{String(row.number).padStart(6, '0')} ·{' '}
+                {rupees(row.amount)}
+              </Link>
+            ))}
         </div>
       </section>
     )}
@@ -316,11 +360,7 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
       <ReportTable
         title="Staff activity"
         headers={['Staff', 'Grading', 'Payments']}
-        rows={r.staffActivity.map((x) => [
-          x.name,
-          x.gradingCount,
-          x.paymentCount,
-        ])}
+        rows={r.staffActivity.map((x) => [x.name, x.gradingCount, x.paymentCount])}
         numericColumns={[1, 2]}
       />
     </section>
@@ -331,12 +371,15 @@ const ReportBody = ({ report: r }: { report: ReportResponse }) => (
         rows={r.dues.customers.map((x) => [x.name, x.mobile, x.village, rupees(x.amount)])}
         numericColumns={[3]}
       />
-      {false && <ReportTable
-        title="Current seed stock"
-        headers={['Seed', 'Quantity']}
-        rows={r.stock.map((x) => [x.name, `${quantity(x.quantityKg)} kg`])}
-        numericColumns={[1]}
-      />}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && (
+        <ReportTable
+          title="Current seed stock"
+          headers={['Seed', 'Quantity']}
+          rows={r.stock.map((x) => [x.name, `${quantity(x.quantityKg)} kg`])}
+          numericColumns={[1]}
+        />
+      )}
     </section>
   </>
 );

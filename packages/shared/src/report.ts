@@ -17,6 +17,7 @@ export const ReportResponseSchema = z
     period: z.strictObject({ from: z.iso.date(), to: z.iso.date() }),
     totalBilled: money,
     totalWaived: money,
+    workerPayments: countMoney,
     expenses: z.strictObject({
       count: z.number().int().nonnegative(),
       total: money,

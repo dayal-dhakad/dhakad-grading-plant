@@ -44,6 +44,9 @@ export const CustomerListResponseSchema = z.strictObject({
     totalPages: z.number().int().nonnegative(),
   }),
 });
+export const CustomerExportResponseSchema = z.strictObject({
+  customers: z.array(CustomerListItemSchema),
+});
 export const CustomerResponseSchema = z.strictObject({ customer: CustomerSchema });
 const DueAmountSchema = z.string().regex(/^\d+\.\d{2}$/);
 export const CustomerDuesResponseSchema = z.strictObject({

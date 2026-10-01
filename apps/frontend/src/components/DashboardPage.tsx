@@ -6,6 +6,7 @@ import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
 // import { useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
 import { useGetStaffListQuery } from '@/services/api/staff-api';
 import { useGetOverviewReportQuery } from '@/services/api/report-api';
+import { useGetWorkerPaymentSummaryQuery } from '@/services/api/worker-api';
 import { TablePagination } from './table/TablePagination';
 
 type DatePreset = 'today' | 'month' | 'year' | 'custom';
@@ -35,6 +36,14 @@ export const DashboardPage = () => {
     isLoading: isReportLoading,
     isError: isReportError,
   } = useGetOverviewReportQuery({ from: reportFrom, to: reportTo }, { skip: !isReportRangeValid });
+  const {
+    data: workerPayments,
+    isLoading: isWorkerPaymentsLoading,
+    isError: isWorkerPaymentsError,
+  } = useGetWorkerPaymentSummaryQuery(
+    { from: reportFrom, to: reportTo },
+    { skip: !isReportRangeValid },
+  );
 
   const selectDatePreset = (preset: Exclude<DatePreset, 'custom'>) => {
     const current = new Date();
@@ -212,6 +221,22 @@ export const DashboardPage = () => {
                 : `₹${report?.expenses.seeds.amount ?? '0.00'}`}
           </p>
         </Link> */}
+        <Link
+          className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
+          to="/admin/workers"
+        >
+          <p className="card-label">Worker payments</p>
+          <p className="mt-3 text-2xl font-bold tabular-nums text-amber-700 sm:text-3xl">
+            {isWorkerPaymentsLoading
+              ? '—'
+              : isWorkerPaymentsError
+                ? 'Unavailable'
+                : `₹${workerPayments?.totalPaid ?? '0.00'}`}
+          </p>
+          <p className="mt-2 text-xs font-semibold text-stone-500">
+            {workerPayments?.paymentCount ?? 0} payments in selected period
+          </p>
+        </Link>
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md sm:col-span-2"
           to="/admin/expenses?area=ADMIN_PERSONAL"
