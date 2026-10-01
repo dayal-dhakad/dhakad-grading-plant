@@ -5,17 +5,27 @@ import {
   useGetGradingEntriesQuery,
 } from '@/services/api/grading-api';
 import { EntryCancellationDialog } from '../entries/EntryCancellationDialog';
-import { EntryDateFilters } from '../entries/EntryDateFilters';
 import { DeleteIcon, HistoryIcon } from '../table/TableActions';
 import { tableIconActionClass } from '../table/table-action-styles';
 import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
+
+type DatePreset = 'today' | 'month' | 'year' | 'custom';
+const localDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const AdminEntriesPage = () => {
   const [tab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const today = localDate();
+  const [datePreset, setDatePreset] = useState<DatePreset>('today');
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
   const deferred = useDeferredValue(search.trim());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -32,6 +42,20 @@ export const AdminEntriesPage = () => {
     },
     { skip: Boolean(from && to && from > to) },
   );
+  const selectDatePreset = (preset: Exclude<DatePreset, 'custom'>) => {
+    const current = new Date();
+    const end = localDate(current);
+    const start =
+      preset === 'today'
+        ? end
+        : preset === 'month'
+          ? localDate(new Date(current.getFullYear(), current.getMonth(), 1))
+          : localDate(new Date(current.getFullYear(), 0, 1));
+    setDatePreset(preset);
+    setFrom(start);
+    setTo(end);
+    setPage(1);
+  };
   return (
     <div className="mx-auto max-w-7xl">
       <p className="text-sm font-semibold text-brand-700">Business activity</p>
@@ -62,7 +86,7 @@ export const AdminEntriesPage = () => {
         <SeedBillsTable />
       ) : (
         <>
-          <section className="card mt-5">
+          <section className="card mt-5 p-4 sm:p-5" aria-label="Entry filters">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <label className="field-label">
                 Search entries
@@ -77,19 +101,64 @@ export const AdminEntriesPage = () => {
                   }}
                 />
               </label>
-              <EntryDateFilters
-                from={from}
-                to={to}
-                onFromChange={(value) => {
-                  setFrom(value);
-                  setPage(1);
-                }}
-                onToChange={(value) => {
-                  setTo(value);
-                  setPage(1);
-                }}
-              />
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="field-label min-w-44">
+                  Entry period
+                  <select
+                    className="compact-field mt-1"
+                    value={datePreset}
+                    onChange={(event) => {
+                      const preset = event.target.value as DatePreset;
+                      if (preset === 'custom') setDatePreset('custom');
+                      else selectDatePreset(preset);
+                    }}
+                  >
+                    <option value="today">Today</option>
+                    <option value="month">Monthly</option>
+                    <option value="year">Yearly</option>
+                    <option value="custom">Custom date</option>
+                  </select>
+                </label>
+                {datePreset === 'custom' && (
+                  <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+                    <label className="field-label">
+                      From
+                      <input
+                        className="compact-field mt-1"
+                        type="date"
+                        value={from}
+                        max={to || undefined}
+                        onChange={(event) => {
+                          setFrom(event.target.value);
+                          setPage(1);
+                        }}
+                      />
+                    </label>
+                    <label className="field-label">
+                      To
+                      <input
+                        className="compact-field mt-1"
+                        type="date"
+                        value={to}
+                        min={from || undefined}
+                        onChange={(event) => {
+                          setTo(event.target.value);
+                          setPage(1);
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
+                <p className="text-sm font-semibold text-stone-600">
+                  {from === to ? from : `${from} to ${to}`}
+                </p>
+              </div>
             </div>
+            {from && to && from > to && (
+              <p className="mt-3 text-sm font-semibold text-red-700" role="alert">
+                End date must be on or after start date.
+              </p>
+            )}
           </section>
           <div className="table-panel mt-4">
             <table className="data-table min-w-[1260px]">
