@@ -13,14 +13,14 @@ import { MyEntriesPage } from '@/components/staff/MyEntriesPage';
 import { EditGradingEntryPage } from '@/components/grading/EditGradingEntryPage';
 import { GradingRevisionHistoryPage } from '@/components/grading/GradingRevisionHistoryPage';
 import { PaymentsPage } from '@/components/payments/PaymentsPage';
-import { SeedManagementPage } from '@/components/admin/SeedManagementPage';
-import { SeedDetailPage } from '@/components/admin/SeedDetailPage';
+// import { SeedManagementPage } from '@/components/admin/SeedManagementPage';
+// import { SeedDetailPage } from '@/components/admin/SeedDetailPage';
 import { PaymentAccountsPage } from '@/components/admin/PaymentAccountsPage';
 import { ReportsPage } from '@/components/admin/ReportsPage';
-import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
-import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
+// import { EditSeedBillPage } from '@/components/seeds/EditSeedBillPage';
+// import { SeedBillRevisionHistoryPage } from '@/components/seeds/SeedBillRevisionHistoryPage';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
-import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
+// import { PublicSeedReceiptPage } from '@/components/receipts/PublicSeedReceiptPage';
 import { PublicGradingReceiptPage } from '@/components/receipts/PublicGradingReceiptPage';
 import { ExpensesPage } from '@/components/admin/ExpensesPage';
 
@@ -68,7 +68,7 @@ const RoleLanding = () => {
 export const AppRouter = () => (
   <Routes>
     <Route path="/receipts/grading/:token" element={<PublicGradingReceiptPage />} />
-    <Route path="/receipts/seed/:token" element={<PublicSeedReceiptPage />} />
+    {/* <Route path="/receipts/seed/:token" element={<PublicSeedReceiptPage />} /> */}
     <Route path="/login" element={<LoginRoute />} />
     <Route path="/" element={<SessionGate />}>
       <Route index element={<RoleLanding />} />
@@ -81,24 +81,24 @@ export const AppRouter = () => (
         <Route path="admin/entries" element={<AdminEntriesPage />} />
         <Route path="admin/grading-settings" element={<GradingSettingsPage />} />
         <Route path="admin/payments" element={<PaymentsPage admin />} />
-        <Route path="admin/seeds" element={<SeedManagementPage />} />
-        <Route path="admin/seeds/:id" element={<SeedDetailPage />} />
+        {/* <Route path="admin/seeds" element={<SeedManagementPage />} />
+        <Route path="admin/seeds/:id" element={<SeedDetailPage />} /> */}
         <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
         <Route path="admin/reports" element={<ReportsPage />} />
         <Route path="admin/expenses" element={<ExpensesPage />} />
         <Route path="admin/entries/:id/history" element={<GradingRevisionHistoryPage admin />} />
-        <Route
+        {/* <Route
           path="admin/seed-bills/:id/history"
           element={<SeedBillRevisionHistoryPage admin />}
-        />
+        /> */}
       </Route>
       <Route element={<RoleGate role="STAFF" />}>
         <Route path="staff/new-entry" element={<StaffEntryPage />} />
         <Route path="staff/entries" element={<MyEntriesPage />} />
         <Route path="staff/entries/:id/edit" element={<EditGradingEntryPage />} />
         <Route path="staff/entries/:id/history" element={<GradingRevisionHistoryPage />} />
-        <Route path="staff/seed-bills/:id/edit" element={<EditSeedBillPage />} />
-        <Route path="staff/seed-bills/:id/history" element={<SeedBillRevisionHistoryPage />} />
+        {/* <Route path="staff/seed-bills/:id/edit" element={<EditSeedBillPage />} />
+        <Route path="staff/seed-bills/:id/history" element={<SeedBillRevisionHistoryPage />} /> */}
         <Route path="staff/payments" element={<PaymentsPage />} />
         <Route path="staff/expenses" element={<ExpensesPage staff />} />
       </Route>

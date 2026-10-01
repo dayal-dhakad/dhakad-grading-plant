@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '@/services/api/auth-api';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetGradingEntriesQuery } from '@/services/api/grading-api';
-import { useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
+// import { useGetSeedBillsQuery } from '@/services/api/seed-billing-api';
 import { useGetStaffListQuery } from '@/services/api/staff-api';
 import { useGetOverviewReportQuery } from '@/services/api/report-api';
 import { TablePagination } from './table/TablePagination';
@@ -28,7 +28,7 @@ export const DashboardPage = () => {
   const { data: staff } = useGetStaffListQuery({ status: 'active', page: 1 });
   const { data: customers } = useGetCustomersQuery({ status: 'active', page: 1 });
   const { data: entries } = useGetGradingEntriesQuery({ status: 'active', page, pageSize });
-  const { data: seedEntries } = useGetSeedBillsQuery({ status: 'active', page: 1, pageSize: 10 });
+  // const { data: seedEntries } = useGetSeedBillsQuery({ status: 'active', page: 1, pageSize: 10 });
   const isReportRangeValid = Boolean(reportFrom && reportTo && reportFrom <= reportTo);
   const {
     data: report,
@@ -127,13 +127,13 @@ export const DashboardPage = () => {
           <p className="card-label">Active grading entries</p>
           <p className="mt-3 text-3xl font-bold">{entries?.pagination.total ?? '—'}</p>
         </Link>
-        <Link
+        {/* <Link
           className="card block transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=seeds"
         >
           <p className="card-label">Active seed entries</p>
           <p className="mt-3 text-3xl font-bold">{seedEntries?.pagination.total ?? '—'}</p>
-        </Link>
+        </Link> */}
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=grading"
@@ -147,7 +147,7 @@ export const DashboardPage = () => {
                 : `₹${report?.grading.paid ?? '0.00'}`}
           </p>
         </Link>
-        <Link
+        {/* <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=seeds"
         >
@@ -159,7 +159,7 @@ export const DashboardPage = () => {
                 ? 'Unavailable'
                 : `₹${report?.seeds.paid ?? '0.00'}`}
           </p>
-        </Link>
+        </Link> */}
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=grading"
@@ -173,7 +173,7 @@ export const DashboardPage = () => {
                 : `₹${report?.grading.due ?? '0.00'}`}
           </p>
         </Link>
-        <Link
+        {/* <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=seeds"
         >
@@ -185,7 +185,7 @@ export const DashboardPage = () => {
                 ? 'Unavailable'
                 : `₹${report?.seeds.due ?? '0.00'}`}
           </p>
-        </Link>
+        </Link> */}
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/expenses?area=GRADING"
@@ -199,7 +199,7 @@ export const DashboardPage = () => {
                 : `₹${report?.expenses.grading.amount ?? '0.00'}`}
           </p>
         </Link>
-        <Link
+        {/* <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/expenses?area=SEEDS"
         >
@@ -211,7 +211,7 @@ export const DashboardPage = () => {
                 ? 'Unavailable'
                 : `₹${report?.expenses.seeds.amount ?? '0.00'}`}
           </p>
-        </Link>
+        </Link> */}
         <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md sm:col-span-2"
           to="/admin/expenses?area=ADMIN_PERSONAL"

@@ -44,7 +44,7 @@ const useDebounced = (value: string) => {
 };
 
 export const StaffEntryPage = () => {
-  const [tab, setTab] = useState<'grading' | 'seeds'>('grading');
+  const [tab] = useState<'grading' | 'seeds'>('grading');
   const [mobile, setMobile] = useState('');
   const search = useDebounced(mobile.trim());
   const [customer, setCustomer] = useState<Customer>();
@@ -202,7 +202,7 @@ export const StaffEntryPage = () => {
     <div className="w-full">
       <SuccessToast message={created} onClose={closeSuccessToast} />
       <h1 className="text-2xl font-bold tracking-tight">New entry</h1>
-      <div className="mt-4 flex w-fit rounded-lg bg-stone-200 p-1">
+      {/* <div className="mt-4 flex w-fit rounded-lg bg-stone-200 p-1">
         <button
           className={`min-h-9 rounded-md px-6 py-1.5 text-sm font-bold ${tab === 'grading' ? 'bg-brand-900 text-white shadow-sm' : 'text-stone-600'}`}
           type="button"
@@ -217,7 +217,7 @@ export const StaffEntryPage = () => {
         >
           Seeds
         </button>
-      </div>
+      </div> */}
       {tab === 'seeds' ? (
         <SeedSalePage />
       ) : pendingEntry && customer ? (

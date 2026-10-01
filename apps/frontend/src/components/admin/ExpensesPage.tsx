@@ -28,6 +28,10 @@ const areas: { value: ExpenseArea; label: string }[] = [
   { value: 'SEEDS', label: 'Seeds' },
   { value: 'ADMIN_PERSONAL', label: 'Admin personal' },
 ];
+const visibleAreas = (staff: boolean) =>
+  areas.filter(
+    (option) => option.value !== 'SEEDS' && (!staff || option.value !== 'ADMIN_PERSONAL'),
+  );
 const areaLabel = (value: ExpenseArea) => areas.find((area) => area.value === value)!.label;
 const label = (value: ExpenseCategory, other: string | null) =>
   value === 'OTHER' ? (other ?? 'Other') : categories.find((x) => x.value === value)!.label;
@@ -52,10 +56,8 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
   );
   const [to, setTo] = useState(localDate(current));
   const requestedArea = searchParams.get('area');
-  const [area, setArea] = useState<ExpenseArea | ''>(
-    requestedArea === 'GRADING' || requestedArea === 'SEEDS' || requestedArea === 'ADMIN_PERSONAL'
-      ? requestedArea
-      : '',
+  const [area, setArea] = useState<ExpenseArea>(
+    !staff && requestedArea === 'ADMIN_PERSONAL' ? 'ADMIN_PERSONAL' : 'GRADING',
   );
   const [category, setCategory] = useState<ExpenseCategory | ''>('');
   const [editing, setEditing] = useState<Expense>();
@@ -67,7 +69,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
       pageSize,
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
-      ...(area ? { area } : {}),
+      area,
       ...(category ? { category } : {}),
     },
     { skip: !isDateRangeValid },
@@ -132,16 +134,13 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
             className="field mt-1 py-2 sm:mt-2"
             value={area}
             onChange={(e) => {
-              const value = e.target.value as ExpenseArea | '';
+              const value = e.target.value as ExpenseArea;
               setArea(value);
-              setSearchParams(value ? { area: value } : {});
+              setSearchParams({ area: value });
               setPage(1);
             }}
           >
-            <option value="">All areas</option>
-            {areas
-              .filter((option) => !staff || option.value !== 'ADMIN_PERSONAL')
-              .map((option) => (
+            {visibleAreas(staff).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -398,9 +397,7 @@ const ExpenseModal = ({
                 clearError('area');
               }}
             >
-              {areas
-                .filter((option) => !staff || option.value !== 'ADMIN_PERSONAL')
-                .map((option) => (
+              {visibleAreas(staff).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

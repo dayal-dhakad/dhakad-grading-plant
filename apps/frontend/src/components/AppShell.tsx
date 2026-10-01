@@ -12,7 +12,7 @@ const adminItems = [
   { label: 'Staff', path: '/admin/staff', icon: 'staff', enabled: true },
   { label: 'Reports', path: '/admin/reports', icon: 'dashboard', enabled: true },
   { label: 'Grading Settings', path: '/admin/grading-settings', icon: 'settings', enabled: true },
-  { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
+  // { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
   { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
 ];
 const staffItems = [

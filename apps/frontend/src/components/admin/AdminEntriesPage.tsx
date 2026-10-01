@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   useCancelGradingEntryMutation,
   useGetGradingEntriesQuery,
@@ -12,8 +12,7 @@ import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
 export const AdminEntriesPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'seeds' ? 'seeds' : 'grading';
+  const [tab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -37,7 +36,7 @@ export const AdminEntriesPage = () => {
     <div className="mx-auto max-w-7xl">
       <p className="text-sm font-semibold text-brand-700">Business activity</p>
       <h1 className="mt-1 text-3xl font-bold">Entries</h1>
-      <div
+      {/* <div
         className="mt-5 inline-flex gap-1 rounded-xl border border-stone-200 bg-stone-100 p-1"
         role="group"
         aria-label="Entry type"
@@ -58,7 +57,7 @@ export const AdminEntriesPage = () => {
         >
           Seed Sale
         </button>
-      </div>
+      </div> */}
       {tab === 'seeds' ? (
         <SeedBillsTable />
       ) : (
