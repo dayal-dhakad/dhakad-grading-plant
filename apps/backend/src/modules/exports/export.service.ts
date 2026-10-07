@@ -5,9 +5,28 @@ import type {
 } from '@dhakad/shared';
 import { ExportStatus, Prisma } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import { fileURLToPath } from 'node:url';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { getOverviewReport } from '../reports/report.service.js';
+
+const regularFontPath = fileURLToPath(
+  import.meta
+    .resolve('@expo-google-fonts/noto-sans-devanagari/400Regular/NotoSansDevanagari_400Regular.ttf'),
+);
+const boldFontPath = fileURLToPath(
+  import.meta
+    .resolve('@expo-google-fonts/noto-sans-devanagari/700Bold/NotoSansDevanagari_700Bold.ttf'),
+);
+const regularFont = 'ExportRegular';
+const boldFont = 'ExportBold';
+
+const createPdf = (options: PDFKit.PDFDocumentOptions) => {
+  const doc = new PDFDocument(options);
+  doc.registerFont(regularFont, regularFontPath);
+  doc.registerFont(boldFont, boldFontPath);
+  return doc;
+};
 
 const present = (job: {
   id: string;
@@ -46,20 +65,69 @@ const whereFor = (filters: CreateCustomerExportInput): Prisma.CustomerWhereInput
     : {}),
 });
 const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
-  const doc = new PDFDocument({ size: 'A4', margin: 32, bufferPages: false });
+  const doc = createPdf({ size: 'A4', layout: 'landscape', margin: 24, bufferPages: false });
   const chunks: Buffer[] = [];
   doc.on('data', (chunk: Buffer) => chunks.push(chunk));
   const complete = new Promise<Buffer>((resolve, reject) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
   });
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const columns = [
+    { label: '#', key: 'number', width: 24, align: 'right' as const },
+    { label: 'Name', key: 'name', width: 105 },
+    { label: 'Mobile', key: 'mobile', width: 66 },
+    { label: 'Village', key: 'village', width: 86 },
+    { label: 'Address', key: 'address', width: 168 },
+    { label: 'Due', key: 'due', width: 64, align: 'right' as const },
+    { label: 'Status', key: 'status', width: 51 },
+    { label: 'WhatsApp', key: 'whatsapp', width: 55 },
+    { label: 'SMS', key: 'sms', width: 42 },
+    { label: 'Created', key: 'created', width: 65 },
+    { label: 'Updated', key: 'updated', width: 65 },
+  ];
+  const configuredWidth = columns.reduce((total, column) => total + column.width, 0);
+  columns[4]!.width += pageWidth - configuredWidth;
+  const tableTop = 72;
+  const headerHeight = 25;
+  const cellPadding = 4;
+  const date = (value: Date) =>
+    value.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  const drawTableHeader = () => {
+    let x = doc.page.margins.left;
+    doc.rect(x, tableTop, pageWidth, headerHeight).fill('#E7E5E4');
+    for (const column of columns) {
+      doc
+        .rect(x, tableTop, column.width, headerHeight)
+        .stroke('#A8A29E')
+        .font(boldFont)
+        .fontSize(7.5)
+        .fillColor('#1C1917')
+        .text(column.label, x + cellPadding, tableTop + 7, {
+          width: column.width - cellPadding * 2,
+          align: column.align ?? 'left',
+          lineBreak: false,
+        });
+      x += column.width;
+    }
+    doc.y = tableTop + headerHeight;
+  };
   const header = () => {
-    doc.fontSize(16).font('Helvetica-Bold').text('Dhakad Grading Plant - Customer Directory');
+    doc
+      .fontSize(16)
+      .font(boldFont)
+      .fillColor('#1C1917')
+      .text('Dhakad Grading Plant - Customer Directory');
     doc
       .fontSize(9)
-      .font('Helvetica')
+      .font(regularFont)
       .text(`Status: ${filters.status}${filters.search ? ` | Search: ${filters.search}` : ''}`);
-    doc.moveDown(0.5);
+    drawTableHeader();
   };
   header();
   let cursor: string | undefined;
@@ -81,21 +149,52 @@ const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
       balances.map((x) => [x.customerId, (x._sum.amount ?? new Prisma.Decimal(0)).toFixed(2)]),
     );
     for (const row of rows) {
-      if (doc.y > 770) {
+      const values: Record<string, string> = {
+        number: String(count + 1),
+        name: row.name,
+        mobile: row.mobile,
+        village: row.village,
+        address: row.address || '—',
+        due: `₹ ${dues.get(row.id) ?? '0.00'}`,
+        status: row.isActive ? 'Active' : 'Inactive',
+        whatsapp: row.whatsappConsent ? 'Yes' : 'No',
+        sms: row.smsConsent ? 'Yes' : 'No',
+        created: date(row.createdAt),
+        updated: date(row.updatedAt),
+      };
+      doc.font(regularFont).fontSize(7.5);
+      const rowHeight = Math.max(
+        25,
+        ...columns.map(
+          (column) =>
+            doc.heightOfString(values[column.key]!, {
+              width: column.width - cellPadding * 2,
+              align: column.align ?? 'left',
+            }) +
+            cellPadding * 2,
+        ),
+      );
+      if (doc.y + rowHeight > doc.page.height - doc.page.margins.bottom) {
         doc.addPage();
         header();
       }
-      doc
-        .fontSize(9)
-        .font('Helvetica-Bold')
-        .text(`${row.name}  |  ${row.mobile}`, { continued: false });
-      doc
-        .font('Helvetica')
-        .fontSize(8)
-        .text(
-          `${row.village}${row.address ? `, ${row.address}` : ''}  |  Due: INR ${dues.get(row.id) ?? '0.00'}  |  ${row.isActive ? 'Active' : 'Inactive'}`,
-        );
-      doc.moveDown(0.35);
+      const y = doc.y;
+      let x = doc.page.margins.left;
+      for (const column of columns) {
+        doc
+          .rect(x, y, column.width, rowHeight)
+          .stroke('#D6D3D1')
+          .font(regularFont)
+          .fontSize(7.5)
+          .fillColor('#1C1917')
+          .text(values[column.key]!, x + cellPadding, y + cellPadding, {
+            width: column.width - cellPadding * 2,
+            height: rowHeight - cellPadding * 2,
+            align: column.align ?? 'left',
+          });
+        x += column.width;
+      }
+      doc.y = y + rowHeight;
       count += 1;
     }
     cursor = rows.at(-1)!.id;
@@ -129,7 +228,7 @@ const processJob = async (id: string, filters: CreateCustomerExportInput) => {
   }
 };
 const buildGradingPdf = async (filters: CreateGradingExportInput) => {
-  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 28 });
+  const doc = createPdf({ size: 'A4', layout: 'landscape', margin: 28 });
   const chunks: Buffer[] = [];
   doc.on('data', (chunk: Buffer) => chunks.push(chunk));
   const complete = new Promise<Buffer>((resolve, reject) => {
@@ -137,10 +236,10 @@ const buildGradingPdf = async (filters: CreateGradingExportInput) => {
     doc.on('error', reject);
   });
   const header = () => {
-    doc.fontSize(15).font('Helvetica-Bold').text('Dhakad Grading Plant - Grading Entries');
+    doc.fontSize(15).font(boldFont).text('Dhakad Grading Plant - Grading Entries');
     doc
       .fontSize(8)
-      .font('Helvetica')
+      .font(regularFont)
       .text(
         `${filters.from ?? 'All dates'} to ${filters.to ?? 'All dates'} | Status: ${filters.status}${filters.search ? ` | Search: ${filters.search}` : ''}`,
       );
@@ -196,12 +295,12 @@ const buildGradingPdf = async (filters: CreateGradingExportInput) => {
       );
       doc
         .fontSize(8)
-        .font('Helvetica-Bold')
+        .font(boldFont)
         .text(
           `GR-${String(row.entryNumber).padStart(6, '0')} | ${row.serviceDate.toISOString().slice(0, 10)} | ${row.customer.name} (${row.customer.mobile}) | ${row.crop.name} ${row.quantity.toFixed(2)} ${row.unit.symbol}`,
         );
       doc
-        .font('Helvetica')
+        .font(regularFont)
         .fontSize(7.5)
         .text(
           `Staff: ${row.createdBy.name} | Amount: INR ${row.calculatedAmount.toFixed(2)} | Paid: ${row.paidAmount.toFixed(2)} | Waived: ${row.waivedAmount.toFixed(2)} | Due: ${due.toFixed(2)} | ${row.paymentMethod} | ${row.status}`,
@@ -257,22 +356,22 @@ const processReportJob = async (id: string, filters: CreateReportExportInput) =>
   try {
     await prisma.exportJob.update({ where: { id }, data: { status: ExportStatus.PROCESSING } });
     const report = await getOverviewReport(filters);
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const doc = createPdf({ size: 'A4', margin: 40 });
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const complete = new Promise<Buffer>((resolve, reject) => {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
     });
-    doc.fontSize(18).font('Helvetica-Bold').text('Dhakad Grading Plant - Business Report');
-    doc.fontSize(10).font('Helvetica').text(`${filters.from} to ${filters.to}`);
+    doc.fontSize(18).font(boldFont).text('Dhakad Grading Plant - Business Report');
+    doc.fontSize(10).font(regularFont).text(`${filters.from} to ${filters.to}`);
     doc.moveDown();
     const metric = (label: string, value: string | number) =>
       doc
         .fontSize(10)
-        .font('Helvetica-Bold')
+        .font(boldFont)
         .text(`${label}: `, { continued: true })
-        .font('Helvetica')
+        .font(regularFont)
         .text(String(value));
     metric('Grading entries', report.grading.count);
     metric('Grading quantity', `${report.grading.quantityQuintals} quintals`);
@@ -288,15 +387,15 @@ const processReportJob = async (id: string, filters: CreateReportExportInput) =>
     metric('Admin personal expenses', `INR ${report.expenses.adminPersonal.amount}`);
     metric('Estimated grading margin', `INR ${report.expenses.gradingMargin}`);
     metric('Current customer dues', `INR ${report.dues.total}`);
-    doc.moveDown().fontSize(13).font('Helvetica-Bold').text('Expenses by category');
+    doc.moveDown().fontSize(13).font(boldFont).text('Expenses by category');
     for (const row of report.expenses.categories)
       metric(row.label, `${row.count} entries | INR ${row.amount}`);
-    doc.moveDown().fontSize(13).font('Helvetica-Bold').text('Customers with dues');
+    doc.moveDown().fontSize(13).font(boldFont).text('Customers with dues');
     for (const row of report.dues.customers) {
       if (doc.y > 770) doc.addPage();
       doc
         .fontSize(8)
-        .font('Helvetica')
+        .font(regularFont)
         .text(`${row.name} | ${row.mobile} | ${row.village} | INR ${row.amount}`);
     }
     doc.end();

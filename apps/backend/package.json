@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@dhakad/shared": "*",
+    "@expo-google-fonts/noto-sans-devanagari": "^0.4.1",
     "@prisma/client": "6.12.0",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
