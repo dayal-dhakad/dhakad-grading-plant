@@ -21,6 +21,9 @@ export const CustomerSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 export const CustomerListItemSchema = CustomerSchema.extend({
+  totalAmount: z.string().regex(/^\d+\.\d{2}$/),
+  totalPaid: z.string().regex(/^\d+\.\d{2}$/),
+  totalWaived: z.string().regex(/^\d+\.\d{2}$/),
   totalDue: z.string().regex(/^\d+\.\d{2}$/),
 });
 export const CreateCustomerSchema = z.strictObject({

@@ -435,11 +435,14 @@ export const CustomersPage = () => {
         ) : (
           <div className="table-panel" role="table" aria-label="Customers">
             <div
-              className="hidden min-w-[920px] grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_280px] items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[0.6875rem] font-bold uppercase tracking-wider text-stone-500 sm:grid"
+              className="hidden min-w-[1040px] grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_120px_90px_280px] items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2 text-[0.6875rem] font-bold uppercase tracking-wider text-stone-500 sm:grid"
               role="row"
             >
               <span role="columnheader">Customer</span>
               <span role="columnheader">Location</span>
+              <span className="text-right" role="columnheader">
+                Total paid
+              </span>
               <span className="text-right" role="columnheader">
                 Total dues
               </span>
@@ -451,7 +454,7 @@ export const CustomersPage = () => {
             {data?.customers.map((customer) => (
               <article
                 key={customer.id}
-                className="grid gap-1.5 border-t border-stone-100 px-3 py-1 transition first:border-t-0 hover:bg-brand-50/40 sm:min-w-[920px] sm:grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_90px_280px] sm:items-center sm:gap-3"
+                className="grid gap-1.5 border-t border-stone-100 px-3 py-1 transition first:border-t-0 hover:bg-brand-50/40 sm:min-w-[1040px] sm:grid-cols-[minmax(220px,1fr)_minmax(180px,0.8fr)_120px_120px_90px_280px] sm:items-center sm:gap-3"
                 role="row"
               >
                 <div className="min-w-0 leading-tight" role="cell">
@@ -473,6 +476,12 @@ export const CustomersPage = () => {
                     {customer.address || 'No address'}
                   </p>
                 </div>
+                <p
+                  className="text-left font-bold tabular-nums text-emerald-700 sm:text-right"
+                  role="cell"
+                >
+                  ₹{customer.totalPaid}
+                </p>
                 <p
                   className={`text-left font-bold tabular-nums sm:text-right ${Number(customer.totalDue) > 0 ? 'text-red-700' : 'text-emerald-700'}`}
                   role="cell"
@@ -556,7 +565,17 @@ export const CustomerPdf = ({
     <table className="w-full border-collapse text-left text-[10px]">
       <thead>
         <tr className="bg-stone-100">
-          {['Customer', 'Mobile', 'Village', 'Address', 'Total dues', 'Status'].map((heading) => (
+          {[
+            'Customer',
+            'Mobile',
+            'Village',
+            'Address',
+            'Total amount',
+            'Total paid',
+            'Total waived',
+            'Total dues',
+            'Status',
+          ].map((heading) => (
             <th key={heading} className="border border-stone-400 px-2 py-1.5 font-bold">
               {heading}
             </th>
@@ -570,6 +589,15 @@ export const CustomerPdf = ({
             <td className="border border-stone-300 px-2 py-1.5">{customer.mobile}</td>
             <td className="border border-stone-300 px-2 py-1.5">{customer.village}</td>
             <td className="border border-stone-300 px-2 py-1.5">{customer.address || '—'}</td>
+            <td className="border border-stone-300 px-2 py-1.5 text-right">
+              ₹{customer.totalAmount}
+            </td>
+            <td className="border border-stone-300 px-2 py-1.5 text-right">
+              ₹{customer.totalPaid}
+            </td>
+            <td className="border border-stone-300 px-2 py-1.5 text-right">
+              ₹{customer.totalWaived}
+            </td>
             <td className="border border-stone-300 px-2 py-1.5 text-right">₹{customer.totalDue}</td>
             <td className="border border-stone-300 px-2 py-1.5">
               {customer.isActive ? 'Active' : 'Inactive'}

@@ -11,9 +11,10 @@
 - Administrators can also request a grading-entry PDF from the Entries page.
 - Grading exports use the current search and inclusive service-date filters, include active and cancelled entries, and are independent of pagination.
 - Reports use the same background PDF-only workflow; CSV and direct browser-print export are not offered.
-- Customer PDFs use the full printable width of landscape A4 and present every business-facing
-  customer field in a bordered table: name, mobile, village, address, current due, status,
-  notification consents, and created/updated dates. Table headings repeat on each page.
+- Customer PDFs use the full printable width of landscape A4 and present customer contact details,
+  total billed amount, total paid, total waived, current dues, status, and created/updated dates in
+  a bordered table. Notification consent fields are intentionally omitted. Table headings repeat
+  on each page.
 - Background PDFs embed Noto Sans Devanagari so Hindi/Devanagari names, villages, addresses, crop
   names, and report labels remain readable alongside Latin text.
 

@@ -8,6 +8,7 @@ import PDFDocument from 'pdfkit';
 import { fileURLToPath } from 'node:url';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
+import { getCustomerFinancialTotals } from '../customers/customer.service.js';
 import { getOverviewReport } from '../reports/report.service.js';
 
 const regularFontPath = fileURLToPath(
@@ -75,16 +76,17 @@ const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const columns = [
     { label: '#', key: 'number', width: 24, align: 'right' as const },
-    { label: 'Name', key: 'name', width: 105 },
-    { label: 'Mobile', key: 'mobile', width: 66 },
-    { label: 'Village', key: 'village', width: 86 },
-    { label: 'Address', key: 'address', width: 168 },
-    { label: 'Due', key: 'due', width: 64, align: 'right' as const },
-    { label: 'Status', key: 'status', width: 51 },
-    { label: 'WhatsApp', key: 'whatsapp', width: 55 },
-    { label: 'SMS', key: 'sms', width: 42 },
-    { label: 'Created', key: 'created', width: 65 },
-    { label: 'Updated', key: 'updated', width: 65 },
+    { label: 'Name', key: 'name', width: 95 },
+    { label: 'Mobile', key: 'mobile', width: 62 },
+    { label: 'Village', key: 'village', width: 75 },
+    { label: 'Address', key: 'address', width: 130 },
+    { label: 'Total', key: 'total', width: 60, align: 'right' as const },
+    { label: 'Paid', key: 'paid', width: 60, align: 'right' as const },
+    { label: 'Waived', key: 'waived', width: 60, align: 'right' as const },
+    { label: 'Dues', key: 'due', width: 60, align: 'right' as const },
+    { label: 'Status', key: 'status', width: 45 },
+    { label: 'Created', key: 'created', width: 62 },
+    { label: 'Updated', key: 'updated', width: 62 },
   ];
   const configuredWidth = columns.reduce((total, column) => total + column.width, 0);
   columns[4]!.width += pageWidth - configuredWidth;
@@ -140,14 +142,7 @@ const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
     if (!rows.length) break;
-    const balances = await prisma.customerLedgerEntry.groupBy({
-      by: ['customerId'],
-      where: { customerId: { in: rows.map((x) => x.id) } },
-      _sum: { amount: true },
-    });
-    const dues = new Map(
-      balances.map((x) => [x.customerId, (x._sum.amount ?? new Prisma.Decimal(0)).toFixed(2)]),
-    );
+    const totals = await getCustomerFinancialTotals(rows.map((row) => row.id));
     for (const row of rows) {
       const values: Record<string, string> = {
         number: String(count + 1),
@@ -155,10 +150,11 @@ const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
         mobile: row.mobile,
         village: row.village,
         address: row.address || '—',
-        due: `₹ ${dues.get(row.id) ?? '0.00'}`,
+        total: `₹ ${totals.get(row.id)!.totalAmount}`,
+        paid: `₹ ${totals.get(row.id)!.totalPaid}`,
+        waived: `₹ ${totals.get(row.id)!.totalWaived}`,
+        due: `₹ ${totals.get(row.id)!.totalDue}`,
         status: row.isActive ? 'Active' : 'Inactive',
-        whatsapp: row.whatsappConsent ? 'Yes' : 'No',
-        sms: row.smsConsent ? 'Yes' : 'No',
         created: date(row.createdAt),
         updated: date(row.updatedAt),
       };

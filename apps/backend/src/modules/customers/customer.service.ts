@@ -34,6 +34,74 @@ const customerWhere = (query: CustomerExportQuery): Prisma.CustomerWhereInput =>
   };
 };
 
+type CustomerFinancialTotals = {
+  totalAmount: string;
+  totalPaid: string;
+  totalWaived: string;
+  totalDue: string;
+};
+
+export const getCustomerFinancialTotals = async (
+  customerIds: string[],
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+) => {
+  if (!customerIds.length) return new Map<string, CustomerFinancialTotals>();
+  const customerFilter = { customerId: { in: customerIds } };
+  const [balances, grading, seeds, payments] = await Promise.all([
+    client.customerLedgerEntry.groupBy({
+      by: ['customerId'],
+      where: customerFilter,
+      _sum: { amount: true },
+    }),
+    client.gradingEntry.groupBy({
+      by: ['customerId'],
+      where: { ...customerFilter, status: 'ACTIVE' },
+      _sum: { calculatedAmount: true, paidAmount: true, waivedAmount: true },
+    }),
+    client.seedBill.groupBy({
+      by: ['customerId'],
+      where: { ...customerFilter, status: 'ACTIVE' },
+      _sum: { netAmount: true, paidAmount: true, waivedAmount: true },
+    }),
+    client.customerPayment.groupBy({
+      by: ['customerId'],
+      where: { ...customerFilter, status: 'ACTIVE' },
+      _sum: { amount: true, waivedAmount: true },
+    }),
+  ]);
+  const zero = new Prisma.Decimal(0);
+  const balanceByCustomer = new Map(
+    balances.map(({ customerId, _sum }) => [customerId, _sum.amount ?? zero]),
+  );
+  const gradingByCustomer = new Map(grading.map((row) => [row.customerId, row._sum]));
+  const seedsByCustomer = new Map(seeds.map((row) => [row.customerId, row._sum]));
+  const paymentsByCustomer = new Map(payments.map((row) => [row.customerId, row._sum]));
+  return new Map(
+    customerIds.map((customerId) => {
+      const gradingTotals = gradingByCustomer.get(customerId);
+      const seedTotals = seedsByCustomer.get(customerId);
+      const paymentTotals = paymentsByCustomer.get(customerId);
+      return [
+        customerId,
+        {
+          totalAmount: (gradingTotals?.calculatedAmount ?? zero)
+            .plus(seedTotals?.netAmount ?? zero)
+            .toFixed(2),
+          totalPaid: (gradingTotals?.paidAmount ?? zero)
+            .plus(seedTotals?.paidAmount ?? zero)
+            .plus(paymentTotals?.amount ?? zero)
+            .toFixed(2),
+          totalWaived: (gradingTotals?.waivedAmount ?? zero)
+            .plus(seedTotals?.waivedAmount ?? zero)
+            .plus(paymentTotals?.waivedAmount ?? zero)
+            .toFixed(2),
+          totalDue: Prisma.Decimal.max(zero, balanceByCustomer.get(customerId) ?? zero).toFixed(2),
+        },
+      ];
+    }),
+  );
+};
+
 export const listCustomers = async (query: CustomerListQuery) => {
   const where = customerWhere(query);
   const { customers, total } = await prisma.$transaction(async (transaction) => {
@@ -46,23 +114,14 @@ export const listCustomers = async (query: CustomerListQuery) => {
       }),
       transaction.customer.count({ where }),
     ]);
-    const balances = pageCustomers.length
-      ? await transaction.customerLedgerEntry.groupBy({
-          by: ['customerId'],
-          where: { customerId: { in: pageCustomers.map(({ id }) => id) } },
-          _sum: { amount: true },
-        })
-      : [];
-    const balanceByCustomer = new Map(
-      balances.map(({ customerId, _sum }) => [
-        customerId,
-        (_sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
-      ]),
+    const totals = await getCustomerFinancialTotals(
+      pageCustomers.map(({ id }) => id),
+      transaction,
     );
     return {
       customers: pageCustomers.map((customer) => ({
         ...customer,
-        totalDue: balanceByCustomer.get(customer.id) ?? '0.00',
+        ...totals.get(customer.id)!,
       })),
       total: customerCount,
     };
@@ -85,23 +144,14 @@ export const exportCustomers = async (query: CustomerExportQuery) => {
       where,
       orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
     });
-    const balances = customers.length
-      ? await transaction.customerLedgerEntry.groupBy({
-          by: ['customerId'],
-          where: { customerId: { in: customers.map(({ id }) => id) } },
-          _sum: { amount: true },
-        })
-      : [];
-    const balanceByCustomer = new Map(
-      balances.map(({ customerId, _sum }) => [
-        customerId,
-        (_sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
-      ]),
+    const totals = await getCustomerFinancialTotals(
+      customers.map(({ id }) => id),
+      transaction,
     );
     return {
       customers: customers.map((customer) => ({
         ...customer,
-        totalDue: balanceByCustomer.get(customer.id) ?? '0.00',
+        ...totals.get(customer.id)!,
       })),
     };
   });
