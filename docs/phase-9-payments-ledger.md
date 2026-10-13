@@ -13,6 +13,9 @@ Status: implementation and verification complete on 2026-09-08; small-balance wa
 - Entry paid/due displays now include active later-payment allocations while preserving the separate grading-time payment used by revision forms.
 - Staff payment listings are backend-scoped to payments recorded by the authenticated staff user.
 - Administrators can view all payments and reverse a payment with a mandatory reason. Reversal restores the ledger balance and preserves the original payment and allocations.
+- The administrator payment list can be filtered by payments recorded by administrators, staff,
+  or everyone. The admin dashboard separately summarizes active standalone payments recorded by
+  administrators for its selected date range.
 - Active allocated payments must be reversed before their grading entry can be cancelled.
 - Added customer ledger/payment panels and role-specific payment workspaces.
 - Payment numbers use `RCPT-` plus a zero-padded database sequence.

@@ -489,6 +489,22 @@ export const reviseSeedBill = async (id: string, input: ReviseSeedBillInput, use
           revisedById: userId,
         },
       });
+      await enqueueCustomerNotifications(tx, {
+        customer,
+        eventType: 'SEED_BILL_CREATED',
+        createdById: userId,
+        seedBillId: updated.id,
+        channels: ['WHATSAPP'],
+        variables: {
+          name: customer.name,
+          number: `SEED-${String(updated.billNumber).padStart(6, '0')}`,
+          amount: net.toFixed(2),
+          paid: paid.toFixed(2),
+          due: Prisma.Decimal.max(0, net.minus(paid).minus(waived)).toFixed(2),
+          receiptUrl: `${process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'}/receipts/seed/${updated.publicReceiptToken}`,
+        },
+        preview: `Seed bill SEED-${String(updated.billNumber).padStart(6, '0')} updated. Amount ₹${net.toFixed(2)}, paid ₹${paid.toFixed(2)}.`,
+      });
       return after;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

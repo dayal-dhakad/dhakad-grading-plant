@@ -57,6 +57,7 @@ export const ReportResponseSchema = z
     }),
     payments: z.strictObject({
       standalone: countMoney,
+      recordedByAdmin: countMoney,
       standaloneWaived: money,
       totalCollected: money,
       cash: money,

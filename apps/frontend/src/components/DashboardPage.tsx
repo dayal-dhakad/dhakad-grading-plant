@@ -185,6 +185,22 @@ export const DashboardPage = () => {
           </p>
           <p className="mt-2 text-xs font-semibold text-stone-500">Live all-time balance</p>
         </Link>
+        <Link
+          className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
+          to="/admin/payments?recordedBy=admin"
+        >
+          <p className="card-label">Payments recorded by admin</p>
+          <p className="mt-3 text-2xl font-bold tabular-nums text-emerald-700 sm:text-3xl">
+            {isReportLoading
+              ? '—'
+              : isReportError
+                ? 'Unavailable'
+                : `₹${report?.payments.recordedByAdmin.amount ?? '0.00'}`}
+          </p>
+          <p className="mt-2 text-xs font-semibold text-stone-500">
+            {report?.payments.recordedByAdmin.count ?? 0} payments in selected period
+          </p>
+        </Link>
         {/* <Link
           className="card min-w-0 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
           to="/admin/entries?tab=seeds"

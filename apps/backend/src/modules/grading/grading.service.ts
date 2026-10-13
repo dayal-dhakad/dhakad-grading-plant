@@ -509,7 +509,27 @@ export const reviseGradingEntry = async (
             },
           });
       }
-      return present(await transaction.gradingEntry.update({ where: { id }, data: next, include }));
+      const updated = await transaction.gradingEntry.update({ where: { id }, data: next, include });
+      await enqueueCustomerNotifications(transaction, {
+        customer,
+        eventType: 'GRADING_CREATED',
+        createdById: userId,
+        gradingEntryId: updated.id,
+        channels: ['WHATSAPP'],
+        variables: {
+          name: customer.name,
+          number: `GR-${String(updated.entryNumber).padStart(6, '0')}`,
+          amount: calculatedAmount.toFixed(2),
+          paid: paidAmount.toFixed(2),
+          due: Prisma.Decimal.max(
+            0,
+            calculatedAmount.minus(paidAmount).minus(waivedAmount),
+          ).toFixed(2),
+          receiptUrl: `${process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'}/receipts/grading/${updated.publicReceiptToken}`,
+        },
+        preview: `Grading GR-${String(updated.entryNumber).padStart(6, '0')} updated. Amount ₹${calculatedAmount.toFixed(2)}, paid ₹${paidAmount.toFixed(2)}.`,
+      });
+      return present(updated);
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );

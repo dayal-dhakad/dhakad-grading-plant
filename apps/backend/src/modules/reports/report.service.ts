@@ -75,7 +75,7 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
         orderBy: { productId: 'asc' },
         _sum: { quantityGrams: true },
       }),
-      prisma.user.findMany({ select: { id: true, name: true } }),
+      prisma.user.findMany({ select: { id: true, name: true, role: true } }),
       prisma.expense.findMany({
         where: { expenseDate: serviceRange },
         select: { area: true, category: true, otherCategory: true, amount: true },
@@ -88,6 +88,10 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
   const activeGrading = grading.filter((row) => row.status === 'ACTIVE');
   const activeSeeds = seedBills.filter((row) => row.status === 'ACTIVE');
   const activePayments = payments.filter((row) => row.status === 'ACTIVE');
+  const adminUserIds = new Set(
+    users.filter((user) => user.role === 'ADMIN').map((user) => user.id),
+  );
+  const adminRecordedPayments = activePayments.filter((row) => adminUserIds.has(row.recordedById));
   const unclassifiedRecords = [
     ...activeGrading
       .filter((row) => row.paymentMethod === 'DUE' && row.paidAmount.gt(0))
@@ -278,6 +282,10 @@ export const getOverviewReport = async (query: ReportQuery): Promise<ReportRespo
       standalone: {
         count: activePayments.length,
         amount: money(sum(activePayments.map((row) => row.amount))),
+      },
+      recordedByAdmin: {
+        count: adminRecordedPayments.length,
+        amount: money(sum(adminRecordedPayments.map((row) => row.amount))),
       },
       standaloneWaived: money(sum(activePayments.map((row) => row.waivedAmount))),
       totalCollected: money(sum(collections.map((row) => row.amount))),

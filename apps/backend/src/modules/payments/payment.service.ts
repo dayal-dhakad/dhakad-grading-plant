@@ -142,6 +142,9 @@ export const createPayment = async (input: CreatePaymentInput, userId: string) =
 export const listPayments = async (query: PaymentListQuery, recorderId?: string) => {
   const where: Prisma.CustomerPaymentWhereInput = {
     ...(recorderId ? { recordedById: recorderId } : {}),
+    ...(!recorderId && query.recordedBy !== 'all'
+      ? { recordedBy: { role: query.recordedBy === 'admin' ? 'ADMIN' : 'STAFF' } }
+      : {}),
     ...(query.status === 'all'
       ? {}
       : { status: query.status === 'active' ? PaymentStatus.ACTIVE : PaymentStatus.REVERSED }),

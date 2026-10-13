@@ -53,6 +53,7 @@ describe('report contracts', () => {
       },
       payments: {
         standalone: { count: 1, amount: '4.00' },
+        recordedByAdmin: { count: 1, amount: '4.00' },
         standaloneWaived: '0.50',
         totalCollected: '99.50',
         cash: '90.00',

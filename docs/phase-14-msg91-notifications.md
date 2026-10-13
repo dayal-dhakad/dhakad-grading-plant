@@ -27,6 +27,9 @@ live provider delivery verification remains pending.
   not roll back grading, billing, or payment transactions.
 - Automatic consent-aware notifications for grading creation/cancellation, seed-bill
   creation/cancellation, and customer payment receipt/reversal.
+- Successful grading-entry and seed-bill revisions queue consent-aware WhatsApp confirmations with
+  the revised totals and receipt link, reusing the verified transaction templates. Revision
+  notifications do not also queue SMS.
 - Separate SMS and WhatsApp consent flags remain available on each customer. WhatsApp is enabled
   by default for new and existing customers by the confirmed business decision; staff can disable
   it for customers who opt out. SMS remains disabled by default.

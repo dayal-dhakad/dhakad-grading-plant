@@ -6,6 +6,7 @@ export const PaymentCustomerParamsSchema = z.strictObject({
 export const PaymentListQuerySchema = z.strictObject({
   search: z.string().trim().max(120).optional(),
   status: z.enum(['active', 'reversed', 'all']).default('active'),
+  recordedBy: z.enum(['all', 'admin', 'staff']).default('all'),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });

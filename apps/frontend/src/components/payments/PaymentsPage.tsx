@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useGetCustomersQuery } from '@/services/api/customer-api';
 import { useGetPaymentsQuery, useReversePaymentMutation } from '@/services/api/payment-api';
 import { CustomerPaymentsPanel } from './CustomerPaymentsPanel';
@@ -9,6 +9,11 @@ import { PaymentReversalDialog } from './PaymentReversalDialog';
 import { ReverseIcon } from '../table/TableActions';
 import { tableActionClass } from '../table/table-action-styles';
 export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialRecorder = searchParams.get('recordedBy');
+  const [recordedBy, setRecordedBy] = useState<'all' | 'admin' | 'staff'>(
+    admin && (initialRecorder === 'admin' || initialRecorder === 'staff') ? initialRecorder : 'all',
+  );
   const [search, setSearch] = useState('');
   const deferred = useDeferredValue(search.trim());
   const [customerId, setCustomerId] = useState('');
@@ -20,6 +25,7 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
   );
   const { data: payments, isLoading } = useGetPaymentsQuery({
     status: 'all',
+    ...(admin ? { recordedBy } : {}),
     page,
     pageSize,
   });
@@ -66,9 +72,30 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
         )}
       </section>
       {customerId && <CustomerPaymentsPanel customerId={customerId} />}
-      <h2 className="mt-7 text-xl font-bold">
-        {admin ? 'All payments' : 'Payments recorded by you'}
-      </h2>
+      <div className="mt-7 flex flex-wrap items-end justify-between gap-3">
+        <h2 className="text-xl font-bold">
+          {admin ? 'Recorded payments' : 'Payments recorded by you'}
+        </h2>
+        {admin && (
+          <label className="field-label min-w-48">
+            Recorded by
+            <select
+              className="compact-field mt-1"
+              value={recordedBy}
+              onChange={(event) => {
+                const value = event.target.value as 'all' | 'admin' | 'staff';
+                setRecordedBy(value);
+                setPage(1);
+                setSearchParams(value === 'all' ? {} : { recordedBy: value });
+              }}
+            >
+              <option value="all">All</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </label>
+        )}
+      </div>
       <div className="table-panel mt-3">
         <table className="data-table min-w-[850px]">
           <thead>

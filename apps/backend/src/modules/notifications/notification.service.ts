@@ -18,11 +18,14 @@ export const enqueueCustomerNotifications = async (
     gradingEntryId?: string;
     seedBillId?: string;
     paymentId?: string;
+    channels?: ('SMS' | 'WHATSAPP')[];
   },
 ) => {
   const channels = [
-    input.customer.smsConsent ? 'SMS' : null,
-    input.customer.whatsappConsent ? 'WHATSAPP' : null,
+    input.customer.smsConsent && (!input.channels || input.channels.includes('SMS')) ? 'SMS' : null,
+    input.customer.whatsappConsent && (!input.channels || input.channels.includes('WHATSAPP'))
+      ? 'WHATSAPP'
+      : null,
   ].filter(Boolean) as ('SMS' | 'WHATSAPP')[];
   if (!channels.length) return;
   await tx.notification.createMany({

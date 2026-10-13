@@ -12,7 +12,13 @@ export const paymentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPayments: builder.query<
       PaymentListResponse,
-      { search?: string; status: 'active' | 'reversed' | 'all'; page: number; pageSize?: number }
+      {
+        search?: string;
+        status: 'active' | 'reversed' | 'all';
+        recordedBy?: 'all' | 'admin' | 'staff';
+        page: number;
+        pageSize?: number;
+      }
     >({
       query: (params) => ({ url: '/payments', params }),
       transformResponse: (value: unknown) => PaymentListResponseSchema.parse(value),

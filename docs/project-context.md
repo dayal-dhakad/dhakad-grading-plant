@@ -26,6 +26,8 @@ The primary users work in a local/village business environment. Optimize for lar
   configuration changes do not rewrite financial history.
 - WhatsApp transaction notifications are enabled by default for new and existing customers; staff
   can disable them for customers who opt out. SMS consent remains disabled by default.
+- Successful grading-entry and seed-bill revisions queue updated WhatsApp confirmations using the
+  existing verified transaction templates and revised receipt details.
 - Administrator-initiated WhatsApp due reminders may be sent regardless of the stored WhatsApp
   transaction-notification consent flag. SMS reminders and automatic transaction notifications
   continue to honor their channel consent flags.
@@ -78,6 +80,8 @@ The primary users work in a local/village business environment. Optimize for lar
 
 - Dashboard shows business summaries and recent activity appropriate to implemented modules.
 - Dashboard summary cards include active grading entries and active seed entries.
+- The admin Payments list can filter receipts recorded by admins, staff, or everyone. The dashboard
+  separately shows active standalone customer payments recorded by admins for the selected period.
 - Staff provides a searchable, paginated staff table and administrator-only staff account creation.
 - Administrator staff-account creation opens in a modal rather than expanding above the table.
 - Each staff name links to a dedicated detail page containing account details, total entry counts, and that staff member's paginated entry history.
