@@ -7,6 +7,9 @@ export const StaffSchema = z.strictObject({
   name: z.string(),
   isActive: z.boolean(),
   entryCount: z.number().int().nonnegative(),
+  paymentRecordedTotal: z.string().optional(),
+  entryPaidTotal: z.string().optional(),
+  entryDueTotal: z.string().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

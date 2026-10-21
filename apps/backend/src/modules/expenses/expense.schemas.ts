@@ -7,6 +7,7 @@ export const ExpenseListQuerySchema = z
     to: z.iso.date().optional(),
     area: z.nativeEnum(ExpenseArea).optional(),
     category: z.nativeEnum(ExpenseCategory).optional(),
+    createdBy: z.union([z.literal('admin'), z.uuid()]).optional(),
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().min(10).max(50).default(20),
   })

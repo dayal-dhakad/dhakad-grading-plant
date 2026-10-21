@@ -10,6 +10,7 @@ import {
 import { MoneyInput } from '@/components/form/MoneyInput';
 import { TablePagination } from '@/components/table/TablePagination';
 import { ApiErrorResponseSchema } from '@/services/api/auth-api';
+import { useGetStaffListQuery } from '@/services/api/staff-api';
 import {
   useCreateExpenseMutation,
   useGetExpensesQuery,
@@ -61,6 +62,11 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
     !staff && requestedArea === 'ADMIN_PERSONAL' ? 'ADMIN_PERSONAL' : 'GRADING',
   );
   const [category, setCategory] = useState<ExpenseCategory | ''>('');
+  const [createdBy, setCreatedBy] = useState('');
+  const { data: staffList } = useGetStaffListQuery(
+    { status: 'all', page: 1, pageSize: 100 },
+    { skip: staff },
+  );
   const [editing, setEditing] = useState<Expense>();
   const [modal, setModal] = useState(false);
   const isDateRangeValid = Boolean(from && to && from <= to);
@@ -72,6 +78,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
       ...(to ? { to } : {}),
       area,
       ...(category ? { category } : {}),
+      ...(!staff && createdBy ? { createdBy } : {}),
     },
     { skip: !isDateRangeValid },
   );
@@ -194,6 +201,25 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
             ))}
           </select>
         </label>
+        {!staff && (
+          <label className="field-label col-span-2 min-w-0 sm:w-56">
+            Added by
+            <select
+              className="field mt-1 py-2 sm:mt-2"
+              value={createdBy}
+              onChange={(event) => {
+                setCreatedBy(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All staff and admins</option>
+              <option value="admin">Admin</option>
+              {staffList?.staff.map((user) => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </section>
       {!isDateRangeValid && (
         <p className="card text-sm font-semibold text-red-700">
@@ -221,6 +247,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
               <th>Area</th>
               <th>Category</th>
               <th>Paid to</th>
+              <th>Added by</th>
               <th>Notes</th>
               <th className="text-right">Amount</th>
               {!staff && <th>Actions</th>}
@@ -234,6 +261,7 @@ export const ExpensesPage = ({ staff = false }: { staff?: boolean }) => {
                 <td className="font-semibold">{areaLabel(x.area)}</td>
                 <td className="font-semibold">{label(x.category, x.otherCategory)}</td>
                 <td>{x.paidTo || '—'}</td>
+                <td>{x.createdByName}</td>
                 <td className="max-w-72 truncate">{x.notes || '—'}</td>
                 <td className="text-right font-bold tabular-nums">{rupees(x.amount)}</td>
                 {!staff && (

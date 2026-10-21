@@ -31,6 +31,7 @@ export const PaymentSchema = z.strictObject({
 export const PaymentResponseSchema = z.strictObject({ payment: PaymentSchema });
 export const PaymentListResponseSchema = z.strictObject({
   payments: z.array(PaymentSchema),
+  totalAmount: z.string(),
   pagination: z.strictObject({
     page: z.number().int().positive(),
     pageSize: z.number().int().positive(),

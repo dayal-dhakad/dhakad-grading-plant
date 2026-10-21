@@ -15,6 +15,7 @@ export type ExpenseQuery = {
   to?: string;
   area?: ExpenseArea;
   category?: ExpenseCategory;
+  createdBy?: string;
   page: number;
   pageSize: number;
 };

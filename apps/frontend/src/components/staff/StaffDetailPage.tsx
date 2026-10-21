@@ -23,10 +23,22 @@ export const StaffDetailPage = () => {
         <p className="card-label">Staff account</p>
         <h1 className="mt-2 text-3xl font-bold">{staff.name}</h1>
         <p className="mt-2 text-brand-800">{staff.mobile}</p>
-        <div className="mt-5 flex gap-6">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <p className="card-label">Total entries</p>
             <p className="mt-1 text-2xl font-bold">{staff.entryCount}</p>
+          </div>
+          <div>
+            <p className="card-label">Payments recorded</p>
+            <p className="mt-1 text-2xl font-bold">₹{staff.paymentRecordedTotal ?? '0.00'}</p>
+          </div>
+          <div>
+            <p className="card-label">Collected during entries</p>
+            <p className="mt-1 text-2xl font-bold">₹{staff.entryPaidTotal ?? '0.00'}</p>
+          </div>
+          <div>
+            <p className="card-label">Outstanding dues</p>
+            <p className="mt-1 text-2xl font-bold">₹{staff.entryDueTotal ?? '0.00'}</p>
           </div>
           <div>
             <p className="card-label">Status</p>

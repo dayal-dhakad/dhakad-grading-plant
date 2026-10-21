@@ -76,6 +76,11 @@ export const PaymentsPage = ({ admin = false }: { admin?: boolean }) => {
         <h2 className="text-xl font-bold">
           {admin ? 'Recorded payments' : 'Payments recorded by you'}
         </h2>
+        {!admin && (
+          <p className="rounded-xl bg-brand-50 px-4 py-3 font-bold text-brand-900">
+            Total payment recorded: ₹{payments?.totalAmount ?? '0.00'}
+          </p>
+        )}
         {admin && (
           <label className="field-label min-w-48">
             Recorded by

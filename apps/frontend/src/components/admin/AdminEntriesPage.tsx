@@ -11,6 +11,7 @@ import { tableIconActionClass } from '../table/table-action-styles';
 import { TablePagination } from '../table/TablePagination';
 import { SeedBillsTable } from '../seeds/SeedBillsTable';
 import { PrintReceiptButton } from '../receipts/PrintReceiptButton';
+import { useGetStaffListQuery } from '@/services/api/staff-api';
 
 type DatePreset = 'today' | 'month' | 'year' | 'custom';
 const localDate = (date = new Date()) => {
@@ -24,6 +25,8 @@ export const AdminEntriesPage = () => {
   const navigate = useNavigate();
   const [tab] = useState<'grading' | 'seeds'>('grading');
   const [search, setSearch] = useState('');
+  const [staffId, setStaffId] = useState('');
+  const { data: staffData } = useGetStaffListQuery({ status: 'active', page: 1, pageSize: 100 });
   const today = localDate();
   const [datePreset, setDatePreset] = useState<DatePreset>('month');
   const [from, setFrom] = useState(
@@ -41,6 +44,7 @@ export const AdminEntriesPage = () => {
       ...(deferred ? { search: deferred } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
+      ...(staffId ? { staffId } : {}),
       status: 'all',
       page,
       pageSize,
@@ -66,6 +70,7 @@ export const AdminEntriesPage = () => {
       ...(deferred ? { search: deferred } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
+      ...(staffId ? { staffId } : {}),
       status: 'all',
     }).unwrap();
     void navigate('/admin/exports');
@@ -118,7 +123,7 @@ export const AdminEntriesPage = () => {
       ) : (
         <>
           <section className="card mt-5 p-4 sm:p-5" aria-label="Entry filters">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
               <label className="field-label">
                 Search entries
                 <input
@@ -131,6 +136,22 @@ export const AdminEntriesPage = () => {
                     setPage(1);
                   }}
                 />
+              </label>
+              <label className="field-label min-w-44">
+                Staff
+                <select
+                  className="compact-field mt-1"
+                  value={staffId}
+                  onChange={(event) => {
+                    setStaffId(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="">All staff</option>
+                  {staffData?.staff.map((staff) => (
+                    <option key={staff.id} value={staff.id}>{staff.name}</option>
+                  ))}
+                </select>
               </label>
               <div className="flex flex-wrap items-end gap-3">
                 <label className="field-label min-w-44">

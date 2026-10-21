@@ -71,7 +71,46 @@ export const listStaff = async (query: StaffListQuery) => {
 export const getStaff = async (id: string) => {
   const user = await prisma.user.findFirst({ where: { id, role: Role.STAFF }, select });
   if (!user) throw new AppError(404, 'STAFF_NOT_FOUND', 'Staff member was not found');
-  return present(user);
+  const [payments, entries] = await Promise.all([
+    prisma.customerPayment.aggregate({
+      where: { recordedById: id, status: 'ACTIVE' },
+      _sum: { amount: true },
+    }),
+    prisma.gradingEntry.findMany({
+      where: { createdById: id, status: 'ACTIVE' },
+      select: {
+        calculatedAmount: true,
+        paidAmount: true,
+        waivedAmount: true,
+        paymentAllocations: {
+          where: { payment: { status: 'ACTIVE' } },
+          select: { amount: true, waivedAmount: true },
+        },
+      },
+    }),
+  ]);
+  const sums = entries.reduce(
+    (total, entry) => {
+      const allocated = entry.paymentAllocations.reduce(
+        (sum, allocation) => sum.plus(allocation.amount).plus(allocation.waivedAmount),
+        new Prisma.Decimal(0),
+      );
+      const paid = entry.paidAmount.plus(allocated);
+      return {
+        paid: total.paid.plus(entry.paidAmount),
+        due: total.due.plus(
+          Prisma.Decimal.max(0, entry.calculatedAmount.minus(paid).minus(entry.waivedAmount)),
+        ),
+      };
+    },
+    { paid: new Prisma.Decimal(0), due: new Prisma.Decimal(0) },
+  );
+  return {
+    ...present(user),
+    paymentRecordedTotal: (payments._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+    entryPaidTotal: sums.paid.toFixed(2),
+    entryDueTotal: sums.due.toFixed(2),
+  };
 };
 export const createStaff = async (input: CreateStaffInput) => {
   try {

@@ -157,7 +157,7 @@ export const listPayments = async (query: PaymentListQuery, recorderId?: string)
         }
       : {}),
   };
-  const [payments, total] = await prisma.$transaction([
+  const [payments, total, amount] = await prisma.$transaction([
     prisma.customerPayment.findMany({
       where,
       include,
@@ -166,9 +166,14 @@ export const listPayments = async (query: PaymentListQuery, recorderId?: string)
       take: query.pageSize,
     }),
     prisma.customerPayment.count({ where }),
+    prisma.customerPayment.aggregate({
+      where: { ...where, status: PaymentStatus.ACTIVE },
+      _sum: { amount: true },
+    }),
   ]);
   return {
     payments: payments.map(present),
+    totalAmount: (amount._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
     pagination: {
       page: query.page,
       pageSize: query.pageSize,
