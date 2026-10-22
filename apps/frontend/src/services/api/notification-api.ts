@@ -1,5 +1,6 @@
 import {
   NotificationListResponseSchema,
+  WhatsAppMessageReportResponseSchema,
   SendBulkReminderSchema,
   SendReminderSchema,
   type SendReminderInput,
@@ -7,6 +8,14 @@ import {
 import { baseApi } from './base-api';
 export const notificationApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getWhatsAppReport: builder.query<
+      ReturnType<typeof WhatsAppMessageReportResponseSchema.parse>,
+      { status?: string; page?: number; pageSize?: number }
+    >({
+      query: (params) => ({ url: '/notifications/whatsapp/report', params }),
+      transformResponse: (value: unknown) => WhatsAppMessageReportResponseSchema.parse(value),
+      providesTags: [{ type: 'Notification', id: 'WHATSAPP-REPORT' }],
+    }),
     getNotifications: builder.query<
       ReturnType<typeof NotificationListResponseSchema.parse>,
       { customerId?: string; status?: string; page?: number; pageSize?: number }
@@ -36,5 +45,9 @@ export const notificationApi = baseApi.injectEndpoints({
     }),
   }),
 });
-export const { useGetNotificationsQuery, useSendReminderMutation, useSendBulkRemindersMutation } =
-  notificationApi;
+export const {
+  useGetNotificationsQuery,
+  useGetWhatsAppReportQuery,
+  useSendReminderMutation,
+  useSendBulkRemindersMutation,
+} = notificationApi;

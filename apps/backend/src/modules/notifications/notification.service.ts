@@ -4,7 +4,7 @@ import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { NotificationListQuery } from './notification.schemas.js';
 import { sendMsg91 } from './msg91.provider.js';
-import { sendFast2SmsWhatsApp } from './fast2sms.provider.js';
+import { getFast2SmsWalletBalance, sendFast2SmsWhatsApp } from './fast2sms.provider.js';
 
 type Tx = Prisma.TransactionClient;
 export const enqueueCustomerNotifications = async (
@@ -151,6 +151,63 @@ export const listNotifications = async (q: NotificationListQuery) => {
     prisma.notification.count({ where }),
   ]);
   return {
+    notifications: rows.map((n) => ({
+      id: n.id,
+      customer: n.customer,
+      channel: n.channel,
+      eventType: n.eventType,
+      status: n.status,
+      recipient: n.recipient,
+      templateKey: n.templateKey,
+      messagePreview: n.messagePreview,
+      attempts: n.attempts,
+      lastError: n.lastError,
+      createdBy: n.createdBy,
+      createdAt: n.createdAt.toISOString(),
+      sentAt: n.sentAt?.toISOString() ?? null,
+    })),
+    pagination: {
+      page: q.page,
+      pageSize: q.pageSize,
+      total,
+      totalPages: Math.ceil(total / q.pageSize),
+    },
+  };
+};
+
+export const getWhatsAppMessageReport = async (q: NotificationListQuery) => {
+  const where: Prisma.NotificationWhereInput = {
+    channel: 'WHATSAPP',
+    ...(q.status === 'all'
+      ? {}
+      : q.status === 'pending'
+        ? { status: { in: ['PENDING', 'PROCESSING'] } }
+        : q.status === 'sent'
+          ? { status: { in: ['SENT', 'DELIVERED', 'READ'] } }
+          : { status: 'FAILED' }),
+  };
+  const [rows, total, balanceResult, statusCounts] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      include,
+      orderBy: { createdAt: 'desc' },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+    }),
+    prisma.notification.count({ where }),
+    getFast2SmsWalletBalance()
+      .then((value) => ({ value, error: null as string | null }))
+      .catch(() => ({ value: null, error: 'Unable to load Fast2SMS wallet balance.' })),
+    prisma.notification.groupBy({
+      by: ['status'],
+      where: { channel: 'WHATSAPP' },
+      _count: { _all: true },
+    }),
+  ]);
+  return {
+    wallet: balanceResult.value,
+    walletError: balanceResult.error,
+    summary: Object.fromEntries(statusCounts.map((row) => [row.status, row._count._all])),
     notifications: rows.map((n) => ({
       id: n.id,
       customer: n.customer,

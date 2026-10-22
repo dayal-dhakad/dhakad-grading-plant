@@ -26,6 +26,7 @@ import { ExpensesPage } from '@/components/admin/ExpensesPage';
 import { WorkersPage } from '@/components/workers/WorkersPage';
 import { ExportsPage } from '@/components/admin/ExportsPage';
 import { WorkerDetailPage } from '@/components/workers/WorkerDetailPage';
+import { WhatsAppMessagesPage } from '@/components/admin/WhatsAppMessagesPage';
 
 const SessionGate = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
@@ -87,6 +88,7 @@ export const AppRouter = () => (
         {/* <Route path="admin/seeds" element={<SeedManagementPage />} />
         <Route path="admin/seeds/:id" element={<SeedDetailPage />} /> */}
         <Route path="admin/payment-accounts" element={<PaymentAccountsPage />} />
+        <Route path="admin/whatsapp-messages" element={<WhatsAppMessagesPage />} />
         <Route path="admin/reports" element={<ReportsPage />} />
         <Route path="admin/expenses" element={<ExpensesPage />} />
         <Route path="admin/workers" element={<WorkersPage />} />

@@ -58,5 +58,19 @@ export const NotificationListResponseSchema = z.strictObject({
     totalPages: z.number(),
   }),
 });
+export const WhatsAppMessageReportResponseSchema = z.strictObject({
+  wallet: z
+    .strictObject({ balance: z.string(), remainingMessages: z.number().int().nonnegative().nullable() })
+    .nullable(),
+  walletError: z.string().nullable(),
+  summary: z.record(z.string(), z.number().int().nonnegative()),
+  notifications: z.array(NotificationSchema),
+  pagination: z.strictObject({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    totalPages: z.number(),
+  }),
+});
 export type SendReminderInput = z.infer<typeof SendReminderSchema>;
 export type SendBulkReminderInput = z.infer<typeof SendBulkReminderSchema>;

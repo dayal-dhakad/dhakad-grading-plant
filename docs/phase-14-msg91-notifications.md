@@ -43,14 +43,23 @@ live provider delivery verification remains pending.
   flag; SMS reminders and automatic notifications retain consent enforcement.
 - Customer notification history records the channel, event, template key, preview, attempts,
   provider message identifier, status, error, creator, and timestamps.
+- Admin sidebar includes a WhatsApp Messages page with Fast2SMS wallet balance, WhatsApp status
+  totals, and a paginated/filterable message report sourced from the notification history.
+- The page displays Fast2SMS's returned remaining-message count when the wallet API includes it.
 
 ## API
 
 - `GET /api/v1/notifications`
+- `GET /api/v1/notifications/whatsapp/report` (administrator only; includes wallet balance and
+  paginated WhatsApp message history)
 - `POST /api/v1/notifications/reminders`
 
 Both routes require authentication and strict Zod validation. Reminder requests reject duplicate
 channels, missing channel consent, and customers without an outstanding balance.
+
+Fast2SMS wallet balance uses the documented `POST https://www.fast2sms.com/dev/wallet` endpoint
+with the configured API key. The response's `wallet` and `sms_count` values provide the displayed
+balance and remaining-message count. Wallet lookup failures are isolated from the app's message report.
 
 ## Configuration required for live verification
 

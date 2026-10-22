@@ -4,7 +4,12 @@ import type { z } from 'zod';
 import { AppError } from '../../shared/errors/app-error.js';
 import { requireAuth, requireRole } from '../auth/auth.middleware.js';
 import { NotificationListQuerySchema } from './notification.schemas.js';
-import { listNotifications, sendBulkReminders, sendReminder } from './notification.service.js';
+import {
+  getWhatsAppMessageReport,
+  listNotifications,
+  sendBulkReminders,
+  sendReminder,
+} from './notification.service.js';
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   const result = schema.safeParse(value);
   if (!result.success)
@@ -21,6 +26,13 @@ notificationRouter.use(requireAuth);
 notificationRouter.get('/', async (request, response, next) => {
   try {
     response.json(await listNotifications(parse(NotificationListQuerySchema, request.query)));
+  } catch (error) {
+    next(error);
+  }
+});
+notificationRouter.get('/whatsapp/report', requireRole('ADMIN'), async (request, response, next) => {
+  try {
+    response.json(await getWhatsAppMessageReport(parse(NotificationListQuerySchema, request.query)));
   } catch (error) {
     next(error);
   }
