@@ -15,6 +15,7 @@ const adminItems = [
   { label: 'Grading Settings', path: '/admin/grading-settings', icon: 'settings', enabled: true },
   // { label: 'Seeds & Stock', path: '/admin/seeds', icon: 'seeds', enabled: true },
   { label: 'Payment Accounts', path: '/admin/payment-accounts', icon: 'payments', enabled: true },
+  { label: 'WhatsApp Messages', path: '/admin/whatsapp-messages', icon: 'messages', enabled: true },
   { label: 'Exports', path: '/admin/exports', icon: 'entries', enabled: true },
 ];
 const staffItems = [
@@ -67,6 +68,12 @@ const SidebarIcon = ({ name }: { name: string }) => {
     expenses: (
       <>
         <path d="M4 7h16v12H4zM7 7V5h10v2M8 12h8M8 15h5" />
+      </>
+    ),
+    messages: (
+      <>
+        <path d="M4 5h16v12H8l-4 3V5z" />
+        <path d="M8 9h8M8 13h5" />
       </>
     ),
     seeds: (

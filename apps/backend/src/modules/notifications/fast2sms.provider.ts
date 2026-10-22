@@ -7,6 +7,38 @@ const ResponseSchema = z
   })
   .passthrough();
 
+const WalletResponseSchema = z
+  .object({
+    return: z.boolean(),
+    wallet: z
+      .union([z.number().finite(), z.string().regex(/^\d+(?:\.\d+)?$/)])
+      .optional(),
+    sms_count: z.number().int().nonnegative().optional(),
+  })
+  .passthrough();
+
+export const getFast2SmsWalletBalance = async () => {
+  if (!env.FAST2SMS_API_KEY) throw new Error('Fast2SMS is not configured');
+  const response = await fetch('https://www.fast2sms.com/dev/wallet', {
+    method: 'POST',
+    headers: {
+      Authorization: env.FAST2SMS_API_KEY,
+      accept: 'application/json',
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  const json: unknown = await response.json().catch(() => ({}));
+  const parsed = WalletResponseSchema.safeParse(json);
+  if (!response.ok || !parsed.success)
+    throw new Error(`Fast2SMS wallet balance is unavailable (${response.status})`);
+  if (!parsed.data.return || parsed.data.wallet === undefined)
+    throw new Error('Fast2SMS did not return a wallet balance');
+  return {
+    balance: String(parsed.data.wallet),
+    remainingMessages: parsed.data.sms_count ?? null,
+  };
+};
+
 const variableOrder: Partial<Record<string, string[]>> = {
   GRADING_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],
   SEED_BILL_CREATED: ['name', 'number', 'amount', 'paid', 'due', 'receiptUrl'],

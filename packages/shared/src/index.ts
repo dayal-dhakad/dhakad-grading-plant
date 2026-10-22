@@ -111,6 +111,7 @@ export {
   SendBulkReminderSchema,
   NotificationSchema,
   NotificationListResponseSchema,
+  WhatsAppMessageReportResponseSchema,
   type SendReminderInput,
   type SendBulkReminderInput,
 } from './notification.js';
