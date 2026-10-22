@@ -199,12 +199,12 @@ export const PrintReceiptButton = (props: Props) => {
             >
               <header className="border-b-2 border-stone-900 pb-4 text-center">
                 <img
-                  className="mx-auto mb-2 h-16 w-16 object-contain"
-                  src="/icons/dhakad-logo.png"
-                  alt="Dhakad Grading Plant"
+                  className="mx-auto mb-2 size-16 object-contain"
+                  src="/icons/grading-plant-solution-logo.svg"
+                  alt="Grading Plant Solution"
                 />
-                <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
-                <p className="mt-1 text-xs">Support: +91 99819 80308</p>
+                <h1 className="text-2xl font-black">Grading Plant Solution</h1>
+                <p className="mt-1 text-xs">Contact: 9669024735</p>
                 <p className="mt-1 font-bold">{title}</p>
                 <p className="mt-1 text-sm">{receiptNumber}</p>
               </header>

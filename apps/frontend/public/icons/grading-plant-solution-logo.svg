@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Grading Plant Solution · 9669024735</title>
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#176b45" />
+      <stop offset="1" stop-color="#064332" />
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="250" fill="url(#field)" />
+  <circle cx="256" cy="256" r="222" fill="#fff9e8" />
+  <path d="M256 229V91m0 102c-46 0-77-25-89-69 46 0 77 25 89 69Zm0 29c46 0 77-25 89-69-46 0-77 25-89 69Z" fill="none" stroke="#176b45" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M190 241c22-17 44-25 66-25s44 8 66 25" fill="none" stroke="#d18b2c" stroke-width="10" stroke-linecap="round" />
+  <text x="256" y="300" text-anchor="middle" fill="#064332" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" letter-spacing="1">GRADING PLANT</text>
+  <text x="256" y="349" text-anchor="middle" fill="#176b45" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="6">SOLUTION</text>
+  <path d="M144 373h224" stroke="#d18b2c" stroke-width="4" stroke-linecap="round" />
+  <text x="256" y="415" text-anchor="middle" fill="#33443a" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" letter-spacing="1">9669024735</text>
+</svg>

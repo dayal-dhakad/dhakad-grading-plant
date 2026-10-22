@@ -555,7 +555,7 @@ export const CustomerPdf = ({
 }) => (
   <div className="print-receipt report-print customer-pdf pointer-events-none fixed inset-0 opacity-0 print:pointer-events-auto print:opacity-100">
     <header className="mb-5 border-b-2 border-stone-800 pb-3">
-      <p className="text-sm font-bold uppercase tracking-wide">Dhakad Grading Plant</p>
+      <p className="text-sm font-bold uppercase tracking-wide">Grading Plant Solution</p>
       <h1 className="mt-1 text-2xl font-bold">Customer directory</h1>
       <p className="mt-2 text-sm">
         {customers.length} customer{customers.length === 1 ? '' : 's'} · Status: {status}

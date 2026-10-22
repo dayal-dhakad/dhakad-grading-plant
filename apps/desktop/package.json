@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "in.dhakad.gradingplant",
-    "productName": "Dhakad Grading Plant",
+    "productName": "Grading Plant Solution",
     "directories": {
       "output": "release"
     },
@@ -46,10 +46,10 @@
     "nsis": {
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Dhakad Grading Plant",
-      "uninstallDisplayName": "Dhakad Grading Plant"
+      "shortcutName": "Grading Plant Solution",
+      "uninstallDisplayName": "Grading Plant Solution"
     }
   },
-  "description": "Windows desktop shell for Dhakad Grading Plant",
-  "author": "Dhakad Grading Plant"
+  "description": "Windows desktop shell for Grading Plant Solution",
+  "author": "Grading Plant Solution"
 }

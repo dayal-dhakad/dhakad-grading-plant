@@ -13,30 +13,21 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       includeAssets: [
-        'icons/dhakad-logo.png',
-        'icons/pwa-192.png',
-        'icons/pwa-512.png',
-        'icons/pwa-maskable-512.png',
-        'icons/apple-touch-icon.png',
+        'icons/grading-plant-solution-logo.svg',
+        'icons/grading-plant-solution-mark.svg',
       ],
       manifest: {
-        name: 'Dhakad Grading Plant',
-        short_name: 'Dhakad Plant',
-        description: 'Business management for Dhakad Grading Plant',
+        name: 'Grading Plant Solution',
+        short_name: 'Grading Plant',
+        description: 'Grading Plant Solution · Contact 9669024735',
         theme_color: '#003f30',
         background_color: '#fff9e8',
         display: 'standalone',
         start_url: '/',
         scope: '/',
         icons: [
-          { src: 'icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          {
-            src: 'icons/pwa-maskable-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
+          { src: 'icons/grading-plant-solution-mark.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icons/grading-plant-solution-mark.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
       workbox: {

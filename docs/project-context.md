@@ -18,7 +18,8 @@ The primary users work in a local/village business environment. Optimize for lar
 
 ## Confirmed interaction decisions
 
-- Grading receipts are issued under Dhakad Grading Plant. Seed invoices are issued separately under
+- Grading receipts and the application are branded Grading Plant Solution, contact 9669024735.
+  Seed invoices are issued separately under
   RCP EXIM PRIVATE LIMITED and use the RCP EXIM invoice branding, address, IEC, support number,
   notes, and bank details.
 - Seed invoices add GST after line discounts. The backend-authoritative rate comes from

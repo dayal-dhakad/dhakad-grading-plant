@@ -124,7 +124,7 @@ const buildCustomerPdf = async (filters: CreateCustomerExportInput) => {
       .fontSize(16)
       .font(boldFont)
       .fillColor('#1C1917')
-      .text('Dhakad Grading Plant - Customer Directory');
+      .text('Grading Plant Solution - Customer Directory');
     doc
       .fontSize(9)
       .font(regularFont)
@@ -232,7 +232,7 @@ const buildGradingPdf = async (filters: CreateGradingExportInput) => {
     doc.on('error', reject);
   });
   const header = () => {
-    doc.fontSize(15).font(boldFont).text('Dhakad Grading Plant - Grading Entries');
+    doc.fontSize(15).font(boldFont).text('Grading Plant Solution - Grading Entries');
     doc
       .fontSize(8)
       .font(regularFont)
@@ -359,7 +359,7 @@ const processReportJob = async (id: string, filters: CreateReportExportInput) =>
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
     });
-    doc.fontSize(18).font(boldFont).text('Dhakad Grading Plant - Business Report');
+    doc.fontSize(18).font(boldFont).text('Grading Plant Solution - Business Report');
     doc.fontSize(10).font(regularFont).text(`${filters.from} to ${filters.to}`);
     doc.moveDown();
     const metric = (label: string, value: string | number) =>

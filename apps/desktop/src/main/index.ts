@@ -19,7 +19,7 @@ const createWindow = async () => {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    title: 'Dhakad Grading Plant',
+    title: 'Grading Plant Solution',
     icon: app.isPackaged
       ? path.join(process.resourcesPath, 'icon.png')
       : path.resolve(__dirname, '../../../frontend/public/icons/pwa-512.png'),

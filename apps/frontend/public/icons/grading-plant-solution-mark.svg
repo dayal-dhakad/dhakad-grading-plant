@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Grading Plant Solution</title>
+  <defs><linearGradient id="field" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#176b45"/><stop offset="1" stop-color="#064332"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="url(#field)" />
+  <circle cx="256" cy="242" r="174" fill="#fff9e8" />
+  <path d="M256 381V138m0 145c-81 0-137-44-157-121 81 0 137 44 157 121Zm0 49c81 0 137-44 157-121-81 0-137 44-157 121Z" fill="none" stroke="#176b45" stroke-width="29" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M157 397c33-24 66-37 99-37s66 13 99 37" fill="none" stroke="#d18b2c" stroke-width="20" stroke-linecap="round" />
+</svg>

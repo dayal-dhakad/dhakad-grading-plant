@@ -242,7 +242,7 @@ export const StaffEntryPage = () => {
           }} />
           <div className="hidden">
           <div className="print-only hidden border-b-2 border-stone-900 p-5 text-center">
-            <h1 className="text-2xl font-black">Dhakad Grading Plant</h1>
+            <h1 className="text-2xl font-black">Grading Plant Solution</h1>
             <p className="mt-1 font-bold">Grading receipt</p>
             <p className="mt-1 text-xs">Draft · Not saved yet</p>
           </div>

@@ -99,7 +99,7 @@ export const LoginPage = () => {
             Confident decisions.
           </h1>
           <p className="mt-6 text-lg leading-8 text-green-100">
-            A simple workspace for the daily work at Dhakad Grading Plant.
+            A simple workspace for your grading plant business.
           </p>
         </div>
         <p className="text-sm text-green-200">Secure access for administrators and staff</p>

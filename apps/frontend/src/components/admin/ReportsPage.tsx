@@ -21,7 +21,7 @@ const sumMoney = (...values: string[]) =>
   values.reduce((total, value) => total + Number(value), 0).toFixed(2);
 export const downloadCsv = (report: ReportResponse) => {
   const rows: (string | number)[][] = [
-    ['Dhakad Grading Plant report', `${report.period.from} to ${report.period.to}`],
+    ['Grading Plant Solution report', `${report.period.from} to ${report.period.to}`],
     ['Metric', 'Value'],
     ['Grading entries', report.grading.count],
     ['Grading quantity (quintals)', report.grading.quantityQuintals],
